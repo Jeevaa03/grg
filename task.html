@@ -1,0 +1,661 @@
+main task.html-{% extends "base.html" %}
+
+{% block title %}Tasks - GRG Ignite{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="dashboard-header">
+        <h1>📋 Tasks Management</h1>
+        {% if session.user_type == 'admin' %}
+        <div style="display: flex; gap: 1rem;">
+            <button onclick="showModal('createTaskModal')" class="btn btn-primary">
+                <i class="icon">➕</i> Create New Task
+            </button>
+            <button onclick="showModal('taskFileModal')" class="btn btn-outline">
+                <i class="icon">📎</i> Upload Task File
+            </button>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Tasks List -->
+    <div class="card">
+        <h2 style="color: var(--text-white); margin-bottom: 2rem;">
+            {% if session.user_type == 'admin' %}📤 Created Tasks{% else %}📥 Assigned Tasks{% endif %}
+        </h2>
+        
+        {% if tasks %}
+            <div class="tasks-grid">
+                {% for task in tasks %}
+                <div class="task-card">
+                    <div class="task-header">
+                        <h3>{{ task.title }}</h3>
+                        <div class="task-meta">
+                            {% if session.user_type == 'admin' %}
+                                <span class="assigned-to">👤 {{ task.assigned_to_name }}</span>
+                                {% if task.student_id %}
+                                    <span class="student-id">🆔 {{ task.student_id }}</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="assigned-by">👨‍🏫 {{ task.assigned_by_name }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="task-description">
+                        <p>{{ task.description }}</p>
+                    </div>
+                    
+                    <div class="task-details">
+                        <div class="detail-item">
+                            <span class="label">📅 Due Date:</span>
+                            <span class="value">{{ task.due_date }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">🔥 Priority:</span>
+                            <span class="value priority-{{ task.priority }}">{{ task.priority.title() }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">📊 Status:</span>
+                            <span class="value status-{{ task.status }}">{{ task.status.title() }}</span>
+                        </div>
+                        {% if task.task_file_name %}
+                        <div class="detail-item">
+                            <span class="label">📎 File:</span>
+                            <a href="/download_task_file/{{ task.id }}" class="file-link">{{ task.task_file_name }}</a>
+                        </div>
+                        {% endif %}
+                        {% if task.submission_status and session.user_type != 'admin' %}
+                        <div class="detail-item">
+                            <span class="label">✅ Submitted:</span>
+                            <span class="value">{{ task.submission_file_name or 'Text submission' }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="task-actions">
+                        {% if session.user_type == 'admin' %}
+                            <select onchange="updateTaskStatus({{ task.id }}, this.value)" class="status-select">
+                                <option value="pending" {% if task.status == 'pending' %}selected{% endif %}>Pending</option>
+                                <option value="in-progress" {% if task.status == 'in-progress' %}selected{% endif %}>In Progress</option>
+                                <option value="completed" {% if task.status == 'completed' %}selected{% endif %}>Completed</option>
+                            </select>
+                        {% else %}
+                            {% if not task.submission_status %}
+                                <button onclick="showTaskSubmission({{ task.id }}, '{{ task.title }}')" class="btn btn-success">
+                                    📤 Submit Task
+                                </button>
+                            {% else %}
+                                <span class="submitted-badge">✅ Submitted</span>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div style="text-align: center; padding: 3rem; color: var(--text-light);">
+                <i class="icon" style="font-size: 4rem; margin-bottom: 1rem;">📝</i>
+                <h3>No tasks found</h3>
+                <p>
+                    {% if session.user_type == 'admin' %}
+                        Start by creating your first task using the "Create New Task" button above.
+                    {% else %}
+                        No tasks have been assigned to you yet.
+                    {% endif %}
+                </p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if session.user_type == 'admin' %}
+<!-- Create Task Modal -->
+<div id="createTaskModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal('createTaskModal')">&times;</span>
+        <h2 style="color: var(--text-white); margin-bottom: 2rem;">➕ Create New Task</h2>
+        
+        <form id="createTaskForm">
+            <div class="form-group">
+                <label for="taskTitle">📝 Task Title:</label>
+                <input type="text" id="taskTitle" name="title" placeholder="Enter task title" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="taskDescription">📋 Description:</label>
+                <textarea id="taskDescription" name="description" placeholder="Describe the task requirements" required></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="assignedTo">👤 Assign To:</label>
+                <select id="assignedTo" name="assigned_to" required>
+                    <option value="">Select a user</option>
+                    {% for user in users %}
+                        <option value="{{ user.id }}">
+                            {{ user.name }} ({{ user.user_type.title() }}{% if user.student_id %} - {{ user.student_id }}{% endif %})
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="dueDate">📅 Due Date:</label>
+                <input type="date" id="dueDate" name="due_date" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="priority">🔥 Priority:</label>
+                <select id="priority" name="priority">
+                    <option value="low">🟢 Low</option>
+                    <option value="medium" selected>🟡 Medium</option>
+                    <option value="high">🔴 High</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="taskFileSelect">📎 Attach File (Optional):</label>
+                <select id="taskFileSelect" name="task_file_id">
+                    <option value="">No file attachment</option>
+                </select>
+                <small style="color: var(--text-light);">Upload task files first using the "Upload Task File" button</small>
+            </div>
+            
+            <button type="submit" class="btn btn-primary" style="width: 100%;">
+                <i class="icon">✨</i> Create Task
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Task File Upload Modal -->
+<div id="taskFileModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal('taskFileModal')">&times;</span>
+        <h2 style="color: var(--text-white); margin-bottom: 2rem;">📎 Upload Task File</h2>
+        
+        <form id="taskFileForm" enctype="multipart/form-data">
+            <div class="form-group">
+                <label>📁 Select File:</label>
+                <div class="file-upload-area" onclick="document.getElementById('taskFileInput').click()">
+                    <input type="file" id="taskFileInput" name="file" style="display: none;" onchange="updateTaskFileName(this)">
+                    <div id="taskFileUploadText">
+                        Click here to upload task file<br>
+                        <small style="opacity: 0.8;">PDF, DOC, DOCX, PPT, PPTX (Max: 50MB)</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="taskFileDescription">📝 File Description:</label>
+                <textarea id="taskFileDescription" name="description" placeholder="Describe the task file" required></textarea>
+            </div>
+            
+            <button type="submit" class="btn btn-primary" style="width: 100%;">
+                <i class="icon">📤</i> Upload File
+            </button>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+{% if session.user_type != 'admin' %}
+<!-- Task Submission Modal -->
+<div id="taskSubmissionModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal('taskSubmissionModal')">&times;</span>
+        <h2 style="color: var(--text-white); margin-bottom: 2rem;">📤 Submit Task</h2>
+        
+        <form id="submissionForm">
+            <input type="hidden" id="submissionTaskId" name="task_id">
+            
+            <div class="form-group">
+                <label>📁 Upload Assignment File:</label>
+                <div class="file-upload-area" onclick="document.getElementById('submissionFileInput').click()">
+                    <input type="file" id="submissionFileInput" name="file" style="display: none;" onchange="updateSubmissionFileName(this)">
+                    <div id="submissionFileUploadText">
+                        Click here to upload your assignment<br>
+                        <small style="opacity: 0.8;">PDF, DOC, DOCX, PPT, PPTX (Max: 50MB)</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="submissionText">📝 Submission Notes:</label>
+                <textarea id="submissionText" name="submission_text" placeholder="Add any notes about your submission (optional)"></textarea>
+            </div>
+            
+            <button type="submit" class="btn btn-primary" style="width: 100%;">
+                <i class="icon">✅</i> Submit Assignment
+            </button>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<style>
+.tasks-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    gap: 2rem;
+}
+
+.task-card {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    backdrop-filter: blur(10px);
+}
+
+.task-header h3 {
+    color: var(--text-white);
+    margin-bottom: 0.5rem;
+    font-size: 1.2rem;
+}
+
+.task-meta {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.9rem;
+    color: var(--text-light);
+    margin-bottom: 1rem;
+}
+
+.task-description p {
+    color: var(--text-light);
+    line-height: 1.5;
+    margin-bottom: 1rem;
+}
+
+.task-details {
+    margin-bottom: 1.5rem;
+}
+
+.detail-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.label {
+    color: var(--text-light);
+}
+
+.value {
+    color: var(--text-white);
+}
+
+.priority-high { color: #ef4444; }
+.priority-medium { color: #f59e0b; }
+.priority-low { color: #22c55e; }
+
+.status-pending { color: #f59e0b; }
+.status-in-progress { color: #3b82f6; }
+.status-completed { color: #22c55e; }
+
+.file-link {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+.file-link:hover {
+    text-decoration: underline;
+}
+
+.task-actions {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.status-select {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    color: var(--text-white);
+    padding: 0.5rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+}
+
+.submitted-badge {
+    background: var(--success-gradient);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+}
+
+.file-upload-area {
+    border: 2px dashed var(--glass-border);
+    border-radius: 8px;
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: var(--text-light);
+}
+
+.file-upload-area:hover {
+    border-color: var(--primary-color);
+    background: rgba(59, 130, 246, 0.05);
+}
+
+@media (max-width: 768px) {
+    .tasks-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .task-meta {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .detail-item {
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+}
+</style>
+
+<script>
+// Task file management
+let taskFiles = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+    if (document.getElementById('createTaskForm')) {
+        setupCreateTaskForm();
+        setupTaskFileUpload();
+        loadTaskFiles();
+    }
+    
+    if (document.getElementById('submissionForm')) {
+        setupSubmissionForm();
+    }
+});
+
+function setupCreateTaskForm() {
+    const form = document.getElementById('createTaskForm');
+    
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData();
+        formData.append('title', document.getElementById('taskTitle').value);
+        formData.append('description', document.getElementById('taskDescription').value);
+        formData.append('assigned_to', document.getElementById('assignedTo').value);
+        formData.append('due_date', document.getElementById('dueDate').value);
+        formData.append('priority', document.getElementById('priority').value);
+        formData.append('task_file_id', document.getElementById('taskFileSelect').value);
+        
+        fetch('/create_task', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('Task created successfully!', 'success');
+                closeModal('createTaskModal');
+                form.reset();
+                location.reload();
+            } else {
+                showNotification(data.error || 'Failed to create task', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Network error occurred', 'error');
+        });
+    });
+}
+
+function setupTaskFileUpload() {
+    const form = document.getElementById('taskFileForm');
+    
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const fileInput = document.getElementById('taskFileInput');
+        const description = document.getElementById('taskFileDescription').value;
+        
+        if (!fileInput.files[0]) {
+            showNotification('Please select a file', 'warning');
+            return;
+        }
+        
+        if (!description.trim()) {
+            showNotification('Please provide a description', 'warning');
+            return;
+        }
+        
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+        formData.append('description', description);
+        
+        fetch('/upload_task_file', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('Task file uploaded successfully!', 'success');
+                closeModal('taskFileModal');
+                form.reset();
+                document.getElementById('taskFileUploadText').innerHTML = `
+                    Click here to upload task file<br>
+                    <small style="opacity: 0.8;">PDF, DOC, DOCX, PPT, PPTX (Max: 50MB)</small>
+                `;
+                loadTaskFiles();
+            } else {
+                showNotification(data.error || 'Upload failed', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Network error occurred', 'error');
+        });
+    });
+}
+
+function setupSubmissionForm() {
+    const form = document.getElementById('submissionForm');
+    
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const taskId = document.getElementById('submissionTaskId').value;
+        const submissionText = document.getElementById('submissionText').value;
+        const fileInput = document.getElementById('submissionFileInput');
+        
+        if (!fileInput.files[0]) {
+            showNotification('Please select a file to submit', 'warning');
+            return;
+        }
+        
+        try {
+            // First upload the file
+            const fileFormData = new FormData();
+            fileFormData.append('file', fileInput.files[0]);
+            fileFormData.append('description', Assignment submission for task ${taskId});
+            fileFormData.append('uploaded_for', 'admin');
+            
+            const fileResponse = await fetch('/upload_file', {
+                method: 'POST',
+                body: fileFormData
+            });
+            
+            const fileResult = await fileResponse.json();
+            
+            if (fileResult.success) {
+                // Submit the task with file ID
+                const submissionFormData = new FormData();
+                submissionFormData.append('task_id', taskId);
+                submissionFormData.append('file_id', fileResult.file_id);
+                submissionFormData.append('submission_text', submissionText);
+                
+                const submissionResponse = await fetch('/submit_task', {
+                    method: 'POST',
+                    body: submissionFormData
+                });
+                
+                const submissionResult = await submissionResponse.json();
+                if (submissionResult.success) {
+                    showNotification('Task submitted successfully!', 'success');
+                    closeModal('taskSubmissionModal');
+                    form.reset();
+                    document.getElementById('submissionFileUploadText').innerHTML = `
+                        Click here to upload your assignment<br>
+                        <small style="opacity: 0.8;">PDF, DOC, DOCX, PPT, PPTX (Max: 50MB)</small>
+                    `;
+                    location.reload();
+                } else {
+                    showNotification(submissionResult.error || 'Submission failed', 'error');
+                }
+            } else {
+                showNotification(fileResult.error || 'File upload failed', 'error');
+            }
+        } catch (error) {
+            showNotification('Submission failed: ' + error.message, 'error');
+        }
+    });
+}
+
+function loadTaskFiles() {
+    // This would load task files for the dropdown
+    // For now, we'll leave it empty since the files are loaded from the server
+}
+
+function updateTaskStatus(taskId, status) {
+    const formData = new FormData();
+    formData.append('task_id', taskId);
+    formData.append('status', status);
+    
+    fetch('/update_task_status', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('Task status updated!', 'success');
+        } else {
+            showNotification(data.error || 'Failed to update status', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Network error occurred', 'error');
+    });
+}
+
+function showTaskSubmission(taskId, taskTitle) {
+    document.getElementById('submissionTaskId').value = taskId;
+    document.querySelector('#taskSubmissionModal h2').innerHTML = 📤 Submit: ${taskTitle};
+    showModal('taskSubmissionModal');
+}
+
+function updateTaskFileName(input) {
+    const fileUploadText = document.getElementById('taskFileUploadText');
+    if (input.files && input.files[0]) {
+        const fileName = input.files[0].name;
+        const fileSize = (input.files[0].size / 1024 / 1024).toFixed(2);
+        
+        fileUploadText.innerHTML = `
+            <strong>📄 ${fileName}</strong><br>
+            <small>Size: ${fileSize} MB | Ready to upload</small>
+        `;
+    }
+}
+
+function updateSubmissionFileName(input) {
+    const fileUploadText = document.getElementById('submissionFileUploadText');
+    if (input.files && input.files[0]) {
+        const fileName = input.files[0].name;
+        const fileSize = (input.files[0].size / 1024 / 1024).toFixed(2);
+        
+        fileUploadText.innerHTML = `
+            <strong>📄 ${fileName}</strong><br>
+            <small>Size: ${fileSize} MB | Ready to submit</small>
+        `;
+    }
+}
+
+function showModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+}
+
+function showNotification(message, type = 'info', duration = 3000) {
+    const existingNotification = document.querySelector('.notification');
+    if (existingNotification) {
+        existingNotification.remove();
+    }
+    
+    const notification = document.createElement('div');
+    notification.className = notification notification-${type};
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        color: white;
+        font-weight: 500;
+        z-index: 10000;
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+        max-width: 400px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    `;
+    
+    const colors = {
+        success: '#22c55e',
+        error: '#ef4444',
+        warning: '#f59e0b',
+        info: '#3b82f6'
+    };
+    notification.style.background = colors[type] || colors.info;
+    
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.transform = 'translateX(0)';
+    }, 100);
+    
+    setTimeout(() => {
+        notification.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, 300);
+    }, duration);
+}
+
+// Close modal when clicking outside
+window.addEventListener('click', function(event) {
+    const modals = document.querySelectorAll('.modal');
+    modals.forEach(modal => {
+        if (event.target === modal) {
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+    });
+});
+</script>
+{% endblock %}

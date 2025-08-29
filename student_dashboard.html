@@ -1,0 +1,769 @@
+{% extends "base.html" %}
+
+{% block title %}Student Dashboard - GRG Ignite{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="dashboard-header">
+        <h1>🎓 Student Dashboard</h1>
+        <div style="display: flex; gap: 1rem;">
+            <button onclick="showModal('uploadModal')" class="btn btn-primary">
+                <i class="icon">📤</i> Upload Assignment
+            </button>
+            <a href="{{ url_for('timeline') }}" class="btn btn-outline">
+                <i class="icon">👁️</i> View Timeline
+            </a>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h3 id="myTasks">-</h3>
+            <p>Total Tasks</p>
+        </div>
+        <div class="stat-card">
+            <h3 id="pendingTasks">-</h3>
+            <p>Pending Tasks</p>
+        </div>
+        <div class="stat-card">
+            <h3 id="completedTasks">-</h3>
+            <p>Completed Tasks</p>
+        </div>
+        <div class="stat-card">
+            <h3 id="myFiles">-</h3>
+            <p>My Files</p>
+        </div>
+    </div>
+
+    <!-- Task Progress -->
+    <div class="card">
+        <h2 style="color: var(--text-white); margin-bottom: 2rem;">📊 Task Progress</h2>
+        <div id="taskProgress">
+            <div class="progress-bar">
+                <div id="overallProgress" class="progress" style="width: 0%;">0%</div>
+            </div>
+            <p style="text-align: center; margin-top: 1rem; color: var(--text-light);">
+                Overall completion rate
+            </p>
+        </div>
+    </div>
+
+    <!-- My Tasks -->
+    <div class="card">
+        <h2 style="color: var(--text-white); margin-bottom: 2rem;">📋 My Tasks</h2>
+        <div id="tasksList">
+            <div style="text-align: center; padding: 2rem; color: var(--text-light);">
+                <i class="icon" style="font-size: 3rem; margin-bottom: 1rem;">📝</i>
+                <p>Loading your tasks...</p>
+            </div>
+        </div>
+      
+    </div>
+
+    <!-- Recent Files -->
+    <div class="card">
+        <h2 style="color: var(--text-white); margin-bottom: 2rem;">📁 Recent Files</h2>
+        <div id="recentFiles">
+            <div style="text-align: center; padding: 2rem; color: var(--text-light);">
+                <i class="icon" style="font-size: 3rem; margin-bottom: 1rem;">📄</i>
+                <p>Loading recent files...</p>
+            </div>
+        </div>
+       
+    </div>
+</div>
+
+<!-- Upload Assignment Modal -->
+<div id="uploadModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal('uploadModal')">&times;</span>
+        <h2 style="color: var(--text-white); margin-bottom: 2rem;">📤 Upload Assignment</h2>
+        
+        <form id="uploadForm" enctype="multipart/form-data">
+            <div class="form-group">
+                <label>📁 Select File:</label>
+                <div class="file-upload-area" onclick="document.getElementById('fileInput').click()">
+                    <input type="file" id="fileInput" name="file" style="display: none;" onchange="updateFileName(this)">
+                    <div id="fileUploadText">
+                        Click here or drag and drop your assignment file<br>
+                        <small style="opacity: 0.8;">Supported: PDF, DOC, DOCX, PPT, PPTX (Max: 50MB)</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="description">📝 Assignment Notes:</label>
+                <textarea id="description" name="description" placeholder="Add any notes about your assignment" required></textarea>
+            </div>
+            
+            <div id="uploadProgress" style="display: none; margin-bottom: 1rem;">
+                <div class="progress-bar">
+                    <div id="progressFill" class="progress" style="width: 0%;">0%</div>
+                </div>
+            </div>
+            
+            <button type="submit" class="btn btn-primary" style="width: 100%;">
+                <i class="icon">🚀</i> Upload Assignment
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Task Details Modal -->
+<div id="taskDetailsModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal('taskDetailsModal')">&times;</span>
+        <div id="taskDetailsContent">
+            <!-- Task details will be loaded here -->
+        </div>
+    </div>
+</div>
+
+<!-- Task Submission Modal -->
+<div id="taskSubmissionModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal('taskSubmissionModal')">&times;</span>
+        <h2 style="color: var(--text-white); margin-bottom: 2rem;">📤 Submit Task</h2>
+        
+        <form id="submissionForm">
+            <input type="hidden" id="submissionTaskId" name="task_id">
+            
+            <div class="form-group">
+                <label>📁 Upload Assignment File:</label>
+                <div class="file-upload-area" onclick="document.getElementById('submissionFileInput').click()">
+                    <input type="file" id="submissionFileInput" name="file" style="display: none;" onchange="updateSubmissionFileName(this)">
+                    <div id="submissionFileUploadText">
+                        Click here to upload your assignment<br>
+                        <small style="opacity: 0.8;">PDF, DOC, DOCX, PPT, PPTX (Max: 50MB)</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="submissionText">📝 Submission Notes:</label>
+                <textarea id="submissionText" name="submission_text" placeholder="Add any notes about your submission (optional)"></textarea>
+            </div>
+            
+            <div id="submissionProgress" style="display: none; margin-bottom: 1rem;">
+                <div class="progress-bar">
+                    <div id="submissionProgressFill" class="progress" style="width: 0%;">0%</div>
+                </div>
+            </div>
+            
+            <button type="submit" class="btn btn-primary" style="width: 100%;">
+                <i class="icon">✅</i> Submit Assignment
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+// Load dashboard data on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadStats();
+    loadRecentTasks();
+    loadRecentFiles();
+    setupFileUpload();
+    setupSubmissionForm();
+});
+
+function loadStats() {
+    fetch('/api/stats')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('myTasks').textContent = data.my_tasks || 0;
+            document.getElementById('pendingTasks').textContent = data.pending_tasks || 0;
+            document.getElementById('completedTasks').textContent = data.completed_tasks || 0;
+            document.getElementById('myFiles').textContent = data.my_files || 0;
+            
+            // Calculate and update progress
+            const completed = data.completed_tasks || 0;
+            const total = data.my_tasks || 0;
+            const progressPercent = total > 0 ? Math.round((completed / total) * 100) : 0;
+            
+            const progressBar = document.getElementById('overallProgress');
+            setTimeout(() => {
+                progressBar.style.width = progressPercent + '%';
+                progressBar.textContent = progressPercent + '%';
+            }, 500);
+        })
+        .catch(error => {
+            console.error('Error loading stats:', error);
+            showNotification('Failed to load statistics', 'error');
+        });
+}
+
+function loadRecentTasks() {
+    fetch('/api/tasks')
+        .then(response => response.json())
+        .then(tasks => {
+            const tasksList = document.getElementById('tasksList');
+            
+            if (tasks.length > 0) {
+                tasksList.innerHTML = '';
+                tasks.slice(0, 3).forEach(task => {
+                    const taskCard = createTaskCard(task);
+                    tasksList.appendChild(taskCard);
+                });
+            } else {
+                tasksList.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: var(--text-light);">
+                        <i class="icon" style="font-size: 3rem; margin-bottom: 1rem;">📂</i>
+                        <p>No tasks assigned yet.</p>
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Error loading tasks:', error);
+            document.getElementById('tasksList').innerHTML = `
+                <div style="text-align: center; padding: 2rem; color: var(--text-light);">
+                    <p>Failed to load tasks.</p>
+                </div>
+            `;
+        });
+}
+
+function loadRecentFiles() {
+    fetch('/api/files')
+        .then(response => response.json())
+        .then(files => {
+            const filesList = document.getElementById('recentFiles');
+            
+            if (files.length > 0) {
+                filesList.innerHTML = '';
+                files.slice(0, 3).forEach(file => {
+                    const fileCard = createFileCard(file);
+                    filesList.appendChild(fileCard);
+                });
+            } else {
+                filesList.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: var(--text-light);">
+                        <i class="icon" style="font-size: 3rem; margin-bottom: 1rem;">📂</i>
+                        <p>No files available yet.</p>
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Error loading files:', error);
+            document.getElementById('recentFiles').innerHTML = `
+                <div style="text-align: center; padding: 2rem; color: var(--text-light);">
+                    <p>Failed to load files.</p>
+                </div>
+            `;
+        });
+}
+
+function createTaskCard(task) {
+    const card = document.createElement('div');
+    card.className = 'file-item';
+    card.style.cursor = 'pointer';
+    card.onclick = () => showTaskDetails(task);
+    
+    const priorityIcons = {
+        'high': '🔴',
+        'medium': '🟡', 
+        'low': '🟢'
+    };
+    
+    const statusColors = {
+        'pending': 'var(--warning-gradient)',
+        'in-progress': 'var(--info-gradient)',
+        'completed': 'var(--success-gradient)',
+        'overdue': 'var(--danger-gradient)'
+    };
+
+    const dueDate = new Date(task.due_date);
+    const today = new Date();
+    const isOverdue = dueDate < today && task.status !== 'completed';
+    const displayStatus = isOverdue ? 'overdue' : task.status;
+    
+    card.innerHTML = `
+        <div class="file-info">
+            <div class="file-name">${priorityIcons[task.priority] || '🔵'} ${task.title}</div>
+            <div class="file-meta">
+                Due: ${new Date(task.due_date).toLocaleDateString()} | 
+                <span class="status-badge" style="background: ${statusColors[displayStatus] || statusColors.pending}; padding: 2px 8px; border-radius: 12px; font-size: 0.8rem;">
+                    ${displayStatus.toUpperCase()}
+                </span>
+                ${task.task_file_name ? ' | 📎 Has File' : ''}
+                ${task.submission_status ? ' | ✅ Submitted' : ''}
+            </div>
+            <p style="margin-top: 0.5rem; color: var(--text-light); font-size: 0.9rem;">
+                ${task.description.substring(0, 100)}${task.description.length > 100 ? '...' : ''}
+            </p>
+        </div>
+        <div class="file-actions">
+            ${!task.submission_status ? `
+                <button class="btn btn-small btn-success" onclick="event.stopPropagation(); showTaskSubmission(${task.id}, '${task.title}')">
+                    📤 Submit
+                </button>
+            ` : `
+                <span class="btn btn-small btn-glass" style="cursor: default;">
+                    ✅ Submitted
+                </span>
+            `}
+        </div>
+    `;
+    
+    return card;
+}
+
+function createFileCard(file) {
+    const card = document.createElement('div');
+    card.className = 'file-item';
+    
+    const fileSize = (file.file_size / 1024 / 1024).toFixed(2);
+    const uploadDate = new Date(file.upload_date).toLocaleDateString();
+    
+    let fileIcon = '📎';
+    if (file.file_type) {
+        if (file.file_type.includes('pdf')) fileIcon = '📄';
+        else if (file.file_type.includes('doc') || file.file_type.includes('word')) fileIcon = '📝';
+        else if (file.file_type.includes('image')) fileIcon = '🖼️';
+        else if (file.file_type.includes('zip') || file.file_type.includes('archive')) fileIcon = '📦';
+    }
+    
+    card.innerHTML = `
+        <div class="file-info">
+            <div class="file-name">${fileIcon} ${file.original_filename}</div>
+            <div class="file-meta">
+                Size: ${fileSize} MB | Uploaded: ${uploadDate} | 
+                By: ${file.uploaded_by_name}
+                <span class="status-badge" style="background: var(--info-gradient); padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; margin-left: 0.5rem;">
+                    ${file.uploader_type.toUpperCase()}
+                </span>
+            </div>
+            ${file.description ? `<p style="margin-top: 0.5rem; color: var(--text-light); font-size: 0.9rem;">${file.description}</p>` : ''}
+        </div>
+        <div class="file-actions">
+            <a href="/download/${file.id}" class="btn btn-small btn-primary">
+                ⬇️ Download
+            </a>
+        </div>
+    `;
+    
+    return card;
+}
+
+function showTaskDetails(task) {
+    const modal = document.getElementById('taskDetailsModal');
+    const content = document.getElementById('taskDetailsContent');
+    
+    const statusColors = {
+        'pending': 'var(--warning-gradient)',
+        'in-progress': 'var(--info-gradient)',
+        'completed': 'var(--success-gradient)',
+        'overdue': 'var(--danger-gradient)'
+    };
+    
+    const priorityIcons = {
+        'high': '🔴 High Priority',
+        'medium': '🟡 Medium Priority', 
+        'low': '🟢 Low Priority'
+    };
+
+    const dueDate = new Date(task.due_date);
+    const today = new Date();
+    const isOverdue = dueDate < today && task.status !== 'completed';
+    const displayStatus = isOverdue ? 'overdue' : task.status;
+    
+    content.innerHTML = `
+        <h2 style="color: var(--text-white); margin-bottom: 1rem;">${task.title}</h2>
+        <div style="display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;">
+            <span class="status-badge" style="background: ${statusColors[displayStatus]};">
+                ${displayStatus.toUpperCase()}
+            </span>
+            <span class="status-badge" style="background: var(--glass-bg); color: var(--text-white);">
+                ${priorityIcons[task.priority]}
+            </span>
+            <span class="status-badge" style="background: var(--glass-bg); color: var(--text-white);">
+                📅 Due: ${new Date(task.due_date).toLocaleDateString()}
+            </span>
+        </div>
+        <div style="margin-bottom: 2rem;">
+            <h3 style="color: var(--text-white); margin-bottom: 1rem;">📝 Description</h3>
+            <p style="color: var(--text-light); line-height: 1.6;">${task.description}</p>
+        </div>
+        ${task.task_file_name ? `
+            <div style="margin-bottom: 2rem;">
+                <h3 style="color: var(--text-white); margin-bottom: 1rem;">📎 Attached File</h3>
+                <div class="file-item" style="margin-bottom: 1rem;">
+                    <div class="file-info">
+                        <div class="file-name">📄 ${task.task_file_name}</div>
+                        <div class="file-meta">Task attachment from instructor</div>
+                    </div>
+                    <div class="file-actions">
+                        <a href="/download_task_file/${task.id}" class="btn btn-small btn-primary">
+                            ⬇️ Download
+                        </a>
+                    </div>
+                </div>
+            </div>
+        ` : ''}
+        ${task.submission_status ? `
+            <div style="margin-bottom: 2rem; padding: 1rem; background: rgba(34, 197, 94, 0.1); border-radius: 8px; border: 1px solid rgba(34, 197, 94, 0.3);">
+                <h3 style="color: var(--success-color); margin-bottom: 1rem;">✅ Submission Status</h3>
+                <p style="color: var(--text-light);">
+                    You have already submitted this task.
+                    ${task.submission_file_name ? `File: ${task.submission_file_name}` : ''}
+                </p>
+            </div>
+        ` : ''}
+        <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+            ${!task.submission_status ? `
+                <button class="btn btn-success" onclick="showTaskSubmission(${task.id}, '${task.title}')">
+                    📤 Submit Task
+                </button>
+            ` : ''}
+            <button class="btn btn-secondary" onclick="updateTaskStatus(${task.id}, 'in-progress')">
+                ⏳ Mark In Progress
+            </button>
+            <button class="btn btn-outline" onclick="closeModal('taskDetailsModal')">
+                ❌ Close
+            </button>
+        </div>
+    `;
+    
+    showModal('taskDetailsModal');
+}
+
+function showTaskSubmission(taskId, taskTitle) {
+    document.getElementById('submissionTaskId').value = taskId;
+    document.querySelector('#taskSubmissionModal h2').innerHTML = `📤 Submit: ${taskTitle}`;
+    closeModal('taskDetailsModal');
+    showModal('taskSubmissionModal');
+}
+
+function updateFileName(input) {
+    const fileUploadText = document.getElementById('fileUploadText');
+    if (input.files && input.files[0]) {
+        const fileName = input.files[0].name;
+        const fileSize = (input.files[0].size / 1024 / 1024).toFixed(2);
+        
+        if (input.files[0].size > 50 * 1024 * 1024) {
+            showNotification('File size must be less than 50MB', 'error');
+            input.value = '';
+            fileUploadText.innerHTML = `
+                Click here or drag and drop your assignment file<br>
+                <small style="opacity: 0.8;">Supported: PDF, DOC, DOCX, PPT, PPTX (Max: 50MB)</small>
+            `;
+            return;
+        }
+        
+        fileUploadText.innerHTML = `
+            <strong>📄 ${fileName}</strong><br>
+            <small>Size: ${fileSize} MB | Ready to upload</small>
+        `;
+    }
+}
+
+function updateSubmissionFileName(input) {
+    const fileUploadText = document.getElementById('submissionFileUploadText');
+    if (input.files && input.files[0]) {
+        const fileName = input.files[0].name;
+        const fileSize = (input.files[0].size / 1024 / 1024).toFixed(2);
+        
+        if (input.files[0].size > 50 * 1024 * 1024) {
+            showNotification('File size must be less than 50MB', 'error');
+            input.value = '';
+            fileUploadText.innerHTML = `
+                Click here to upload your assignment<br>
+                <small style="opacity: 0.8;">PDF, DOC, DOCX, PPT, PPTX (Max: 50MB)</small>
+            `;
+            return;
+        }
+        
+        fileUploadText.innerHTML = `
+            <strong>📄 ${fileName}</strong><br>
+            <small>Size: ${fileSize} MB | Ready to submit</small>
+        `;
+    }
+}
+
+function setupFileUpload() {
+    const form = document.getElementById('uploadForm');
+    const progressDiv = document.getElementById('uploadProgress');
+    const progressFill = document.getElementById('progressFill');
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const fileInput = document.getElementById('fileInput');
+        const description = document.getElementById('description').value.trim();
+
+        if (!fileInput.files || !fileInput.files[0]) {
+            showNotification('Please select a file to upload', 'warning');
+            return;
+        }
+
+        if (!description) {
+            showNotification('Please provide assignment notes', 'warning');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+        formData.append('description', description);
+        formData.append('uploaded_for', 'admin');
+
+        // Show progress bar
+        progressDiv.style.display = 'block';
+        progressFill.style.width = '0%';
+        progressFill.textContent = '0%';
+
+        const submitButton = form.querySelector('button[type="submit"]');
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<i class="icon">⏳</i> Uploading...';
+
+        const xhr = new XMLHttpRequest();
+
+        xhr.upload.onprogress = function(event) {
+            if (event.lengthComputable) {
+                const percent = (event.loaded / event.total) * 100;
+                progressFill.style.width = percent + '%';
+                progressFill.textContent = Math.round(percent) + '%';
+            }
+        };
+
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    if (response.success) {
+                        showNotification('Assignment uploaded successfully!', 'success');
+                        closeModal('uploadModal');
+                        form.reset();
+                        document.getElementById('fileUploadText').innerHTML = `
+                            Click here or drag and drop your assignment file<br>
+                            <small style="opacity: 0.8;">Supported: PDF, DOC, DOCX, PPT, PPTX (Max: 50MB)</small>
+                        `;
+                        loadStats();
+                        loadRecentFiles();
+                    } else {
+                        throw new Error(response.error || 'Upload failed');
+                    }
+                } catch (error) {
+                    showNotification(error.message || 'Invalid server response', 'error');
+                }
+            } else {
+                showNotification('Upload failed: ' + xhr.responseText, 'error');
+            }
+        };
+
+        xhr.onerror = function() {
+            showNotification('An error occurred during upload.', 'error');
+        };
+
+        xhr.onloadend = function() {
+            progressDiv.style.display = 'none';
+            submitButton.disabled = false;
+            submitButton.innerHTML = '<i class="icon">🚀</i> Upload Assignment';
+        };
+
+        xhr.open('POST', '/upload_file');
+        xhr.send(formData);
+    });
+}
+
+function setupSubmissionForm() {
+    const form = document.getElementById('submissionForm');
+    
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const taskId = document.getElementById('submissionTaskId').value;
+        const submissionText = document.getElementById('submissionText').value;
+        const fileInput = document.getElementById('submissionFileInput');
+        
+        if (!fileInput.files || !fileInput.files[0]) {
+            showNotification('Please select a file to submit', 'warning');
+            return;
+        }
+        
+        // First upload the file
+        const fileFormData = new FormData();
+        fileFormData.append('file', fileInput.files[0]);
+        fileFormData.append('description', `Assignment submission for task ${taskId}`);
+        fileFormData.append('uploaded_for', 'admin');
+        
+        const progressDiv = document.getElementById('submissionProgress');
+        const progressFill = document.getElementById('submissionProgressFill');
+        
+        progressDiv.style.display = 'block';
+        progressFill.style.width = '0%';
+        progressFill.textContent = '0%';
+        
+        try {
+            const fileResponse = await uploadFileWithProgress('/upload_file', fileFormData, progressFill);
+            const fileResult = await fileResponse.json();
+            
+            if (fileResult.success) {
+                // Submit the task with file ID
+                const submissionFormData = new FormData();
+                submissionFormData.append('task_id', taskId);
+                submissionFormData.append('file_id', fileResult.file_id);
+                submissionFormData.append('submission_text', submissionText);
+                
+                const submissionResponse = await fetch('/submit_task', {
+                    method: 'POST',
+                    body: submissionFormData
+                });
+                
+                const submissionResult = await submissionResponse.json();
+                if (submissionResult.success) {
+                    showNotification('Task submitted successfully!', 'success');
+                    closeModal('taskSubmissionModal');
+                    form.reset();
+                    document.getElementById('submissionFileUploadText').innerHTML = `
+                        Click here to upload your assignment<br>
+                        <small style="opacity: 0.8;">PDF, DOC, DOCX, PPT, PPTX (Max: 50MB)</small>
+                    `;
+                    loadStats();
+                    loadRecentTasks();
+                } else {
+                    throw new Error(submissionResult.error || 'Submission failed');
+                }
+            } else {
+                throw new Error(fileResult.error || 'File upload failed');
+            }
+        } catch (error) {
+            showNotification('Submission failed: ' + error.message, 'error');
+        } finally {
+            progressDiv.style.display = 'none';
+        }
+    });
+}
+
+function uploadFileWithProgress(url, formData, progressElement) {
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        
+        xhr.upload.addEventListener('progress', (e) => {
+            if (e.lengthComputable) {
+                const percentComplete = (e.loaded / e.total) * 100;
+                progressElement.style.width = percentComplete + '%';
+                progressElement.textContent = Math.round(percentComplete) + '%';
+            }
+        });
+        
+        xhr.addEventListener('load', () => {
+            if (xhr.status === 200) {
+                resolve(new Response(xhr.responseText));
+            } else {
+                reject(new Error(`HTTP ${xhr.status}: ${xhr.responseText}`));
+            }
+        });
+        
+        xhr.addEventListener('error', () => {
+            reject(new Error('Network error occurred'));
+        });
+        
+        xhr.open('POST', url);
+        xhr.send(formData);
+    });
+}
+
+function updateTaskStatus(taskId, status) {
+    const formData = new FormData();
+    formData.append('task_id', taskId);
+    formData.append('status', status);
+    
+    fetch('/update_task_status', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('Task status updated!', 'success');
+            loadRecentTasks();
+            loadStats();
+        } else {
+            showNotification(data.error || 'Failed to update status', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Network error occurred', 'error');
+    });
+}
+
+function showModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+}
+
+function showNotification(message, type = 'info', duration = 3000) {
+    const existingNotification = document.querySelector('.notification');
+    if (existingNotification) {
+        existingNotification.remove();
+    }
+    
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        color: white;
+        font-weight: 500;
+        z-index: 10000;
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+        max-width: 400px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    `;
+    
+    const colors = {
+        success: '#22c55e',
+        error: '#ef4444',
+        warning: '#f59e0b',
+        info: '#3b82f6'
+    };
+    notification.style.background = colors[type] || colors.info;
+    
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.transform = 'translateX(0)';
+    }, 100);
+    
+    setTimeout(() => {
+        notification.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, 300);
+    }, duration);
+}
+
+// Close modal when clicking outside
+window.addEventListener('click', function(event) {
+    const modals = document.querySelectorAll('.modal');
+    modals.forEach(modal => {
+        if (event.target === modal) {
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+    });
+});
+</script>
+{% endblock %}

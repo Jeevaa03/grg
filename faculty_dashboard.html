@@ -1,0 +1,682 @@
+{% extends "base.html" %}
+
+{% block title %}Faculty Dashboard - GRG Ignite{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="dashboard-header">
+        <h1>👨‍🏫 Faculty Dashboard</h1>
+        <div style="display: flex; gap: 1rem;">
+            <button onclick="refreshData()" class="btn btn-outline">
+                <i class="icon">🔄</i> Refresh
+            </button>
+            <a href="{{ url_for('timeline') }}" class="btn btn-outline">
+                <i class="icon">👁️</i> View Timeline
+            </a>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h3 id="totalStudents">-</h3>
+            <p>Total Students</p>
+        </div>
+        <div class="stat-card">
+            <h3 id="totalSubmissions">-</h3>
+            <p>Total Submissions</p>
+        </div>
+        <div class="stat-card">
+            <h3 id="pendingReviews">-</h3>
+            <p>Pending Reviews</p>
+        </div>
+        <div class="stat-card">
+            <h3 id="completedReviews">-</h3>
+            <p>Completed Reviews</p>
+        </div>
+    </div>
+
+    <!-- Student Progress Overview -->
+    <div class="card">
+        <h2 style="color: var(--text-white); margin-bottom: 2rem;">📊 Student Progress Overview</h2>
+        <div id="studentProgressList">
+            <div style="text-align: center; padding: 2rem; color: var(--text-light);">
+                <i class="icon" style="font-size: 3rem; margin-bottom: 1rem;">📈</i>
+                <p>Loading student progress...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Student Submissions -->
+    <div class="card">
+        <h2 style="color: var(--text-white); margin-bottom: 2rem;">📝 Recent Student Submissions</h2>
+        <div id="studentSubmissionsList">
+            <div style="text-align: center; padding: 2rem; color: var(--text-light);">
+                <i class="icon" style="font-size: 3rem; margin-bottom: 1rem;">📄</i>
+                <p>Loading student submissions...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- All Student Tasks -->
+    <div class="card">
+        <h2 style="color: var(--text-white); margin-bottom: 2rem;">📋 All Student Tasks</h2>
+        <div id="allStudentTasks">
+            <div style="text-align: center; padding: 2rem; color: var(--text-light);">
+                <i class="icon" style="font-size: 3rem; margin-bottom: 1rem;">📂</i>
+                <p>Loading student tasks...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Submission Review Modal -->
+<div id="reviewModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal('reviewModal')">&times;</span>
+        <h2 style="color: var(--text-white); margin-bottom: 2rem;">📝 Review Submission</h2>
+        
+        <div id="submissionDetails" style="margin-bottom: 2rem;">
+            <!-- Submission details will be loaded here -->
+        </div>
+        
+        <form id="reviewForm">
+            <input type="hidden" id="reviewSubmissionId" name="submission_id">
+            
+            <div class="form-group">
+                <label for="feedback">💬 Feedback:</label>
+                <textarea id="feedback" name="feedback" placeholder="Provide feedback for the student" rows="4"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="grade">🎯 Grade:</label>
+                <select id="grade" name="grade">
+                    <option value="">Select Grade</option>
+                    <option value="A+">A+ (Excellent)</option>
+                    <option value="A">A (Very Good)</option>
+                    <option value="B+">B+ (Good)</option>
+                    <option value="B">B (Above Average)</option>
+                    <option value="C+">C+ (Average)</option>
+                    <option value="C">C (Below Average)</option>
+                    <option value="D">D (Poor)</option>
+                    <option value="F">F (Fail)</option>
+                </option>
+            </div>
+            
+            <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                <button type="submit" class="btn btn-success" style="flex: 1;">
+                    ✅ Submit Review
+                </button>
+                <button type="button" class="btn btn-outline" onclick="closeModal('reviewModal')" style="flex: 1;">
+                    ❌ Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Student Details Modal -->
+<div id="studentDetailsModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal('studentDetailsModal')">&times;</span>
+        <div id="studentDetailsContent">
+            <!-- Student details will be loaded here -->
+        </div>
+    </div>
+</div>
+
+<script>
+// Load dashboard data on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadFacultyStats();
+    loadStudentProgress();
+    loadStudentSubmissions();
+    loadAllStudentTasks();
+    setupReviewForm();
+});
+
+function loadFacultyStats() {
+    fetch('/api/faculty_stats')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('totalStudents').textContent = data.total_students || 0;
+            document.getElementById('totalSubmissions').textContent = data.total_submissions || 0;
+            document.getElementById('pendingReviews').textContent = data.pending_reviews || 0;
+            document.getElementById('completedReviews').textContent = data.completed_reviews || 0;
+        })
+        .catch(error => {
+            console.error('Error loading faculty stats:', error);
+            showNotification('Failed to load statistics', 'error');
+        });
+}
+
+function loadStudentProgress() {
+    fetch('/api/student_progress')
+        .then(response => response.json())
+        .then(students => {
+            const progressList = document.getElementById('studentProgressList');
+            
+            if (students.length > 0) {
+                progressList.innerHTML = '';
+                students.forEach(student => {
+                    const progressCard = createStudentProgressCard(student);
+                    progressList.appendChild(progressCard);
+                });
+            } else {
+                progressList.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: var(--text-light);">
+                        <i class="icon" style="font-size: 3rem; margin-bottom: 1rem;">👥</i>
+                        <p>No student data available.</p>
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Error loading student progress:', error);
+            document.getElementById('studentProgressList').innerHTML = `
+                <div style="text-align: center; padding: 2rem; color: var(--text-light);">
+                    <p>Failed to load student progress.</p>
+                </div>
+            `;
+        });
+}
+
+function loadStudentSubmissions() {
+    fetch('/api/faculty_submissions')
+        .then(response => response.json())
+        .then(submissions => {
+            const submissionsList = document.getElementById('studentSubmissionsList');
+            
+            if (submissions.length > 0) {
+                submissionsList.innerHTML = '';
+                submissions.slice(0, 5).forEach(submission => {
+                    const submissionCard = createSubmissionCard(submission);
+                    submissionsList.appendChild(submissionCard);
+                });
+            } else {
+                submissionsList.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: var(--text-light);">
+                        <i class="icon" style="font-size: 3rem; margin-bottom: 1rem;">📂</i>
+                        <p>No student submissions yet.</p>
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Error loading student submissions:', error);
+            document.getElementById('studentSubmissionsList').innerHTML = `
+                <div style="text-align: center; padding: 2rem; color: var(--text-light);">
+                    <p>Failed to load student submissions.</p>
+                </div>
+            `;
+        });
+}
+
+function loadAllStudentTasks() {
+    fetch('/api/all_student_tasks')
+        .then(response => response.json())
+        .then(tasks => {
+            const tasksList = document.getElementById('allStudentTasks');
+            
+            if (tasks.length > 0) {
+                tasksList.innerHTML = '';
+                tasks.forEach(task => {
+                    const taskCard = createStudentTaskCard(task);
+                    tasksList.appendChild(taskCard);
+                });
+            } else {
+                tasksList.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: var(--text-light);">
+                        <i class="icon" style="font-size: 3rem; margin-bottom: 1rem;">📂</i>
+                        <p>No student tasks available.</p>
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Error loading student tasks:', error);
+            document.getElementById('allStudentTasks').innerHTML = `
+                <div style="text-align: center; padding: 2rem; color: var(--text-light);">
+                    <p>Failed to load student tasks.</p>
+                </div>
+            `;
+        });
+}
+
+function createStudentProgressCard(student) {
+    const card = document.createElement('div');
+    card.className = 'file-item';
+    card.style.cursor = 'pointer';
+    card.onclick = () => showStudentDetails(student);
+    
+    const completionRate = student.total_tasks > 0 ? Math.round((student.completed_tasks / student.total_tasks) * 100) : 0;
+    const progressColor = completionRate >= 80 ? 'var(--success-gradient)' : 
+                         completionRate >= 50 ? 'var(--warning-gradient)' : 'var(--danger-gradient)';
+    
+    card.innerHTML = `
+        <div class="file-info">
+            <div class="file-name">👤 ${student.name}</div>
+            <div class="file-meta">
+                ID: ${student.student_id || 'N/A'} | ${student.department || 'No Department'} | ${student.email}
+            </div>
+            <div style="margin-top: 1rem;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                    <span style="color: var(--text-light); font-size: 0.9rem;">Progress: ${completionRate}%</span>
+                    <span style="color: var(--text-light); font-size: 0.9rem;">${student.completed_tasks}/${student.total_tasks} tasks</span>
+                </div>
+                <div class="progress-bar" style="height: 8px;">
+                    <div class="progress" style="width: ${completionRate}%; background: ${progressColor};"></div>
+                </div>
+            </div>
+            <div style="margin-top: 1rem; display: flex; gap: 1rem; font-size: 0.8rem;">
+                <span style="color: var(--warning-color);">⏳ Pending: ${student.pending_tasks}</span>
+                <span style="color: var(--info-color);">📝 Submissions: ${student.total_submissions}</span>
+            </div>
+        </div>
+        <div class="file-actions">
+            <button class="btn btn-small btn-primary" onclick="event.stopPropagation(); showStudentDetails(${JSON.stringify(student).replace(/"/g, '&quot;')})">
+                👁️ View Details
+            </button>
+        </div>
+    `;
+    
+    return card;
+}
+
+function createSubmissionCard(submission) {
+    const card = document.createElement('div');
+    card.className = 'file-item';
+    
+    const fileSize = (submission.file_size / 1024 / 1024).toFixed(2);
+    const submissionDate = new Date(submission.submitted_at || submission.upload_date).toLocaleDateString();
+    
+    let fileIcon = '📎';
+    if (submission.file_type) {
+        if (submission.file_type.includes('pdf')) fileIcon = '📄';
+        else if (submission.file_type.includes('doc') || submission.file_type.includes('word')) fileIcon = '📝';
+        else if (submission.file_type.includes('image')) fileIcon = '🖼️';
+        else if (submission.file_type.includes('zip') || submission.file_type.includes('archive')) fileIcon = '📦';
+    }
+    
+    const hasReview = submission.feedback || submission.grade;
+    
+    card.innerHTML = `
+        <div class="file-info">
+            <div class="file-name">${fileIcon} ${submission.original_filename}</div>
+            <div class="file-meta">
+                👤 ${submission.uploaded_by_name} (${submission.student_id || 'N/A'}) | 
+                📅 ${submissionDate} | 
+                💾 ${fileSize} MB
+                ${submission.task_title ? ` | 📋 ${submission.task_title}` : ''}
+            </div>
+            ${submission.submission_text ? `
+                <p style="margin-top: 0.5rem; color: var(--text-light); font-size: 0.9rem;">
+                    ${submission.submission_text.substring(0, 100)}${submission.submission_text.length > 100 ? '...' : ''}
+                </p>
+            ` : ''}
+            ${hasReview ? `
+                <div style="margin-top: 0.5rem; padding: 0.5rem; background: rgba(34, 197, 94, 0.1); border-radius: 4px; border: 1px solid rgba(34, 197, 94, 0.3);">
+                    <span style="color: var(--success-color); font-size: 0.8rem;">✅ Reviewed</span>
+                    ${submission.grade ? ` | 🎯 Grade: ${submission.grade}` : ''}
+                </div>
+            ` : ''}
+        </div>
+        <div class="file-actions">
+            <a href="/download/${submission.id}" class="btn btn-small btn-primary">
+                ⬇️ Download
+            </a>
+            ${!hasReview ? `
+                <button class="btn btn-small btn-success" onclick="showReviewModal(${submission.submission_id || submission.id}, '${submission.uploaded_by_name}', '${submission.original_filename}', '${submission.task_title || 'Assignment'}')">
+                    📝 Review
+                </button>
+            ` : `
+                <button class="btn btn-small btn-outline" onclick="showReviewModal(${submission.submission_id || submission.id}, '${submission.uploaded_by_name}', '${submission.original_filename}', '${submission.task_title || 'Assignment'}')">
+                    👁️ View Review
+                </button>
+            `}
+        </div>
+    `;
+    
+    return card;
+}
+
+function createStudentTaskCard(task) {
+    const card = document.createElement('div');
+    card.className = 'file-item';
+    
+    const priorityIcons = {
+        'high': '🔴',
+        'medium': '🟡', 
+        'low': '🟢'
+    };
+    
+    const statusColors = {
+        'pending': 'var(--warning-gradient)',
+        'in-progress': 'var(--info-gradient)',
+        'completed': 'var(--success-gradient)',
+        'overdue': 'var(--danger-gradient)'
+    };
+
+    const dueDate = new Date(task.due_date);
+    const today = new Date();
+    const isOverdue = dueDate < today && task.status !== 'completed';
+    const displayStatus = isOverdue ? 'overdue' : task.status;
+    
+    card.innerHTML = `
+        <div class="file-info">
+            <div class="file-name">${priorityIcons[task.priority] || '🔵'} ${task.title}</div>
+            <div class="file-meta">
+                👤 Assigned to: ${task.assigned_to_name} (${task.student_id || 'N/A'}) | 
+                📅 Due: ${new Date(task.due_date).toLocaleDateString()} | 
+                <span class="status-badge" style="background: ${statusColors[displayStatus] || statusColors.pending}; padding: 2px 8px; border-radius: 12px; font-size: 0.8rem;">
+                    ${displayStatus.toUpperCase()}
+                </span>
+            </div>
+            <p style="margin-top: 0.5rem; color: var(--text-light); font-size: 0.9rem;">
+                ${task.description.substring(0, 120)}${task.description.length > 120 ? '...' : ''}
+            </p>
+            ${task.submission_status ? `
+                <div style="margin-top: 0.5rem; padding: 0.5rem; background: rgba(34, 197, 94, 0.1); border-radius: 4px; border: 1px solid rgba(34, 197, 94, 0.3);">
+                    <span style="color: var(--success-color); font-size: 0.8rem;">✅ Student Submitted</span>
+                    ${task.submission_file_name ? ` | 📄 ${task.submission_file_name}` : ''}
+                </div>
+            ` : ''}
+        </div>
+        <div class="file-actions">
+            ${task.task_file_name ? `
+                <a href="/download_task_file/${task.id}" class="btn btn-small btn-outline">
+                    📎 Task File
+                </a>
+            ` : ''}
+            ${task.submission_status ? `
+                <a href="/download/${task.submission_file_id}" class="btn btn-small btn-primary">
+                    ⬇️ Download Submission
+                </a>
+            ` : ''}
+        </div>
+    `;
+    
+    return card;
+}
+
+function showStudentDetails(student) {
+    const modal = document.getElementById('studentDetailsModal');
+    const content = document.getElementById('studentDetailsContent');
+    
+    // Fetch detailed student information
+    fetch(`/api/student_detail/${student.id}`)
+        .then(response => response.json())
+        .then(data => {
+            content.innerHTML = `
+                <h2 style="color: var(--text-white); margin-bottom: 1rem;">👤 ${student.name}</h2>
+                <div style="display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;">
+                    <span class="status-badge" style="background: var(--glass-bg); color: var(--text-white);">
+                        🆔 ${student.student_id || 'N/A'}
+                    </span>
+                    <span class="status-badge" style="background: var(--glass-bg); color: var(--text-white);">
+                        🏢 ${student.department || 'No Department'}
+                    </span>
+                    <span class="status-badge" style="background: var(--glass-bg); color: var(--text-white);">
+                        📧 ${student.email}
+                    </span>
+                </div>
+                
+                <div style="margin-bottom: 2rem;">
+                    <h3 style="color: var(--text-white); margin-bottom: 1rem;">📊 Progress Summary</h3>
+                    <div class="stats-grid" style="margin-bottom: 1rem;">
+                        <div class="stat-card">
+                            <h3>${student.total_tasks}</h3>
+                            <p>Total Tasks</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3>${student.completed_tasks}</h3>
+                            <p>Completed</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3>${student.pending_tasks}</h3>
+                            <p>Pending</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3>${student.total_submissions}</h3>
+                            <p>Submissions</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 2rem;">
+                    <h3 style="color: var(--text-white); margin-bottom: 1rem;">📋 Recent Tasks</h3>
+                    <div id="studentTasksList">
+                        <div style="text-align: center; padding: 1rem; color: var(--text-light);">
+                            Loading tasks...
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                    <button class="btn btn-outline" onclick="closeModal('studentDetailsModal')">
+                        ❌ Close
+                    </button>
+                </div>
+            `;
+            
+            // Load student's tasks
+            loadStudentTasks(student.id);
+        })
+        .catch(error => {
+            console.error('Error loading student details:', error);
+            content.innerHTML = `
+                <h2 style="color: var(--text-white); margin-bottom: 1rem;">Error</h2>
+                <p style="color: var(--text-light);">Failed to load student details.</p>
+                <button class="btn btn-outline" onclick="closeModal('studentDetailsModal')">Close</button>
+            `;
+        });
+    
+    showModal('studentDetailsModal');
+}
+
+function loadStudentTasks(studentId) {
+    fetch(`/api/student_tasks/${studentId}`)
+        .then(response => response.json())
+        .then(tasks => {
+            const tasksList = document.getElementById('studentTasksList');
+            
+            if (tasks.length > 0) {
+                tasksList.innerHTML = '';
+                tasks.forEach(task => {
+                    const taskItem = document.createElement('div');
+                    taskItem.className = 'file-item';
+                    taskItem.style.marginBottom = '0.5rem';
+                    
+                    const statusColors = {
+                        'pending': 'var(--warning-gradient)',
+                        'in-progress': 'var(--info-gradient)',
+                        'completed': 'var(--success-gradient)',
+                        'overdue': 'var(--danger-gradient)'
+                    };
+                    
+                    const dueDate = new Date(task.due_date);
+                    const today = new Date();
+                    const isOverdue = dueDate < today && task.status !== 'completed';
+                    const displayStatus = isOverdue ? 'overdue' : task.status;
+                    
+                    taskItem.innerHTML = `
+                        <div class="file-info">
+                            <div class="file-name">${task.title}</div>
+                            <div class="file-meta">
+                                📅 Due: ${new Date(task.due_date).toLocaleDateString()} | 
+                                <span class="status-badge" style="background: ${statusColors[displayStatus]}; padding: 2px 6px; border-radius: 8px; font-size: 0.7rem;">
+                                    ${displayStatus.toUpperCase()}
+                                </span>
+                                ${task.submission_status ? ' | ✅ Submitted' : ''}
+                            </div>
+                        </div>
+                    `;
+                    
+                    tasksList.appendChild(taskItem);
+                });
+            } else {
+                tasksList.innerHTML = `
+                    <p style="color: var(--text-light); text-align: center;">No tasks assigned to this student.</p>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Error loading student tasks:', error);
+            document.getElementById('studentTasksList').innerHTML = `
+                <p style="color: var(--text-light); text-align: center;">Failed to load tasks.</p>
+            `;
+        });
+}
+
+function showReviewModal(submissionId, studentName, fileName, taskTitle) {
+    document.getElementById('reviewSubmissionId').value = submissionId;
+    
+    const detailsDiv = document.getElementById('submissionDetails');
+    detailsDiv.innerHTML = `
+        <div style="background: var(--glass-bg); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+            <h3 style="color: var(--text-white); margin-bottom: 0.5rem;">📄 ${fileName}</h3>
+            <p style="color: var(--text-light); margin-bottom: 0.5rem;">👤 Student: ${studentName}</p>
+            <p style="color: var(--text-light);">📋 Task: ${taskTitle}</p>
+        </div>
+    `;
+    
+    // Load existing review if available
+    fetch(`/api/submission_review/${submissionId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.feedback) {
+                document.getElementById('feedback').value = data.feedback;
+            }
+            if (data.grade) {
+                document.getElementById('grade').value = data.grade;
+            }
+        })
+        .catch(error => {
+            console.log('No existing review found');
+        });
+    
+    showModal('reviewModal');
+}
+
+function setupReviewForm() {
+    const form = document.getElementById('reviewForm');
+    
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const submissionId = document.getElementById('reviewSubmissionId').value;
+        const feedback = document.getElementById('feedback').value;
+        const grade = document.getElementById('grade').value;
+        
+        const formData = new FormData();
+        formData.append('submission_id', submissionId);
+        formData.append('feedback', feedback);
+        formData.append('grade', grade);
+        
+        fetch('/submit_review', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('Review submitted successfully!', 'success');
+                closeModal('reviewModal');
+                form.reset();
+                loadStudentSubmissions();
+                loadFacultyStats();
+            } else {
+                showNotification(data.error || 'Failed to submit review', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error submitting review:', error);
+            showNotification('Network error occurred', 'error');
+        });
+    });
+}
+
+function refreshData() {
+    showNotification('Refreshing data...', 'info');
+    loadFacultyStats();
+    loadStudentProgress();
+    loadStudentSubmissions();
+    loadAllStudentTasks();
+}
+
+function showModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+}
+
+function showNotification(message, type = 'info', duration = 3000) {
+    const existingNotification = document.querySelector('.notification');
+    if (existingNotification) {
+        existingNotification.remove();
+    }
+    
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        color: white;
+        font-weight: 500;
+        z-index: 10000;
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+        max-width: 400px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    `;
+    
+    const colors = {
+        success: '#22c55e',
+        error: '#ef4444',
+        warning: '#f59e0b',
+        info: '#3b82f6'
+    };
+    notification.style.background = colors[type] || colors.info;
+    
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.transform = 'translateX(0)';
+    }, 100);
+    
+    setTimeout(() => {
+        notification.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, 300);
+    }, duration);
+}
+
+// Close modal when clicking outside
+window.addEventListener('click', function(event) {
+    const modals = document.querySelectorAll('.modal');
+    modals.forEach(modal => {
+        if (event.target === modal) {
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+    });
+});
+</script>
+{% endblock %}

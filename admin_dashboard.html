@@ -1,0 +1,643 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - GRG Ignite{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="dashboard-header">
+        <h1>🚀 Admin Dashboard</h1>
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+            <button onclick="showModal('uploadModal')" class="btn btn-primary">
+                <i class="icon">📤</i> Upload File
+            </button>
+            <button onclick="showModal('taskModal')" class="btn btn-secondary">
+                <i class="icon">✓</i> Create Task
+            </button>
+           
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h3 id="totalUsers">-</h3>
+            <p>Total Users</p>
+        </div>
+        <div class="stat-card">
+            <h3 id="totalFiles">-</h3>
+            <p>Files Uploaded</p>
+        </div>
+        <div class="stat-card">
+            <h3 id="pendingTasks">-</h3>
+            <p>Pending Tasks</p>
+        </div>
+        <div class="stat-card">
+            <h3 id="completedTasks">-</h3>
+            <p>Completed Tasks</p>
+        </div>
+    </div>
+
+    
+
+    <!-- Student Submissions Section -->
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <h2 style="color: var(--text-white);">📋 Recent Student Submissions</h2>
+            <a href="{{ url_for('student_submissions') }}" class="btn btn-outline btn-small">
+        
+            </a>
+        </div>
+        <div id="studentSubmissions">
+            <div style="text-align: center; padding: 2rem; color: var(--text-light);">
+                <i class="icon" style="font-size: 3rem; margin-bottom: 1rem;">📊</i>
+                <p>Loading student submissions...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="card">
+        <h2 style="color: var(--text-white); margin-bottom: 2rem;">📊 Quick Actions</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+            <a href="{{ url_for('files') }}" class="btn btn-outline">
+                <i class="icon">📁</i> Manage Files
+            </a>
+           
+            <a href="{{ url_for('timeline') }}" class="btn btn-outline">
+                <i class="icon">⏰</i> View Timeline
+           </a>
+            <button onclick="refreshStats()" class="btn btn-glass">
+                <i class="icon">🔄</i> Refresh Stats
+            </button>
+        </div>
+    </div>
+</div>
+    <!-- Timeline Modal -->
+    <div id="timelineModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <span class="close" onclick="closeModal('timelineModal')">&times;</span>
+            <h2>Incubation Timeline (september2025 - january 2026)</h2>
+            <div class="timeline">
+                <div class="timeline-item">
+                    <div class="timeline-content">
+                        <h4>September 2025</h4>
+                        <p>Project Initiation & Planning Phase</p>
+                        <small>Setup project structure and define objectives</small>
+                    </div>
+                    <div class="timeline-date"></div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-content">
+                        <h4>October 2025</h4>
+                        <p>Research & Development Phase</p>
+                        <small>Conduct market research and develop prototypes</small>
+                    </div>
+                    <div class="timeline-date"></div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-content">
+                        <h4>November 2025</h4>
+                        <p>Implementation Phase</p>
+                        <small>Build and test the core product features</small>
+                    </div>
+                    <div class="timeline-date"></div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-content">
+                        <h4>December 2025</h4>
+                        <p>Testing & Refinement</p>
+                        <small>User testing and product optimization</small>
+                    </div>
+                    <div class="timeline-date"></div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-content">
+                        <h4>January 2026</h4>
+                        <p>Final Presentation & Deployment</p>
+                        <small>Present final product and launch</small>
+                    </div>
+                    <div class="timeline-date">
+   </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+
+<!-- Upload File Modal -->
+<div id="uploadModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal('uploadModal')">&times;</span>
+        <h2 style="color: var(--text-white); margin-bottom: 2rem;">📤 Upload File</h2>
+        
+        <form id="uploadForm" enctype="multipart/form-data">
+            <div class="form-group">
+                <label>📁 Select File:</label>
+                <div class="file-upload-area" onclick="document.getElementById('fileInput').click()">
+                    <input type="file" id="fileInput" name="file" style="display: none;" onchange="updateFileName(this)">
+                    <div id="fileUploadText">
+                        Click here or drag and drop your file<br>
+                        <small style="opacity: 0.8;">Maximum file size: 50MB</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="description">📝 Description:</label>
+                <textarea id="description" name="description" placeholder="Brief description of the file" required></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="uploadedFor">👥 Upload for:</label>
+                <select id="uploadedFor" name="uploaded_for">
+                    <option value="all">All Users</option>
+                    <option value="student">Students Only</option>
+                    <option value="faculty">Faculty Only</option>
+                </select>
+            </div>
+            
+            <div id="uploadProgress" style="display: none; margin-bottom: 1rem;">
+                <div class="progress-bar">
+                    <div id="progressFill" class="progress" style="width: 0%;">0%</div>
+                </div>
+            </div>
+            
+            <button type="submit" class="btn btn-primary" style="width: 100%;">
+                <i class="icon">🚀</i> Upload File
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Create Task Modal -->
+<div id="taskModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal('taskModal')">&times;</span>
+        <h2 style="color: var(--text-white); margin-bottom: 2rem;">✓ Create Task</h2>
+        
+        <form id="taskForm">
+            <div class="form-group">
+                <label for="taskTitle">📋 Task Title:</label>
+                <input type="text" id="taskTitle" name="title" required placeholder="Enter task title">
+            </div>
+            
+            <div class="form-group">
+                <label for="taskDescription">📝 Description:</label>
+                <textarea id="taskDescription" name="description" required placeholder="Describe the task in detail"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="assignedTo">👤 Assign to:</label>
+                <select id="assignedTo" name="assigned_to" required>
+                    <option value="">Select Student/Faculty</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="dueDate">📅 Due Date:</label>
+                <input type="date" id="dueDate" name="due_date" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="priority">⚡ Priority:</label>
+                <select id="priority" name="priority">
+                    <option value="low">🟢 Low</option>
+                    <option value="medium" selected>🟡 Medium</option>
+                    <option value="high">🔴 High</option>
+                </select>
+            </div>
+
+            <!-- Task File Upload Section -->
+            <div class="form-group">
+                <label>📎 Attach File (Optional):</label>
+                <div class="file-upload-area" onclick="document.getElementById('taskFileInput').click()">
+                    <input type="file" id="taskFileInput" name="task_file" style="display: none;" onchange="updateTaskFileName(this)">
+                    <div id="taskFileUploadText">
+                        Click here to attach a file to this task<br>
+                        <small style="opacity: 0.8;">Optional: PDF, DOC, PPT, etc. (Max: 50MB)</small>
+                    </div>
+                </div>
+                <input type="hidden" id="taskFileId" name="task_file_id">
+            </div>
+            
+            <button type="submit" class="btn btn-primary" style="width: 100%;">
+                <i class="icon">✅</i> Create Task
+            </button>
+        </form>
+    </div>
+</div>
+
+
+
+<script>
+// Load statistics and users on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadStats();
+    loadUsers();
+    loadStudentSubmissions();
+    setupFileUpload();
+    setupTaskForm();
+    
+    // Set minimum date to today for date inputs
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('dueDate').min = today;
+    document.getElementById('eventDate').min = today;
+});
+
+function loadStats() {
+    fetch('/api/stats')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('totalUsers').textContent = data.total_users || 0;
+            document.getElementById('totalFiles').textContent = data.total_files || 0;
+            document.getElementById('pendingTasks').textContent = data.pending_tasks || 0;
+            document.getElementById('completedTasks').textContent = data.completed_tasks || 0;
+        })
+        .catch(error => {
+            console.error('Error loading stats:', error);
+            showNotification('Failed to load statistics', 'error');
+        });
+}
+
+function refreshStats() {
+    const statCards = document.querySelectorAll('.stat-card h3');
+    statCards.forEach(card => {
+        card.classList.add('loading');
+    });
+    
+    setTimeout(() => {
+        loadStats();
+        loadStudentSubmissions();
+        statCards.forEach(card => {
+            card.classList.remove('loading');
+        });
+        showNotification('Statistics refreshed successfully!', 'success', 2000);
+    }, 1000);
+}
+
+function loadUsers() {
+    fetch('/api/users')
+        .then(response => response.json())
+        .then(users => {
+            const select = document.getElementById('assignedTo');
+            select.innerHTML = '<option value="">Select Student/Faculty</option>';
+            
+            users.forEach(user => {
+                const option = document.createElement('option');
+                option.value = user.id;
+                option.textContent = `${user.name} (${user.user_type}${user.student_id ? ' - ' + user.student_id : ''})`;
+                select.appendChild(option);
+            });
+        })
+        .catch(error => {
+            console.error('Error loading users:', error);
+            showNotification('Failed to load users', 'error');
+        });
+}
+
+function loadStudentSubmissions() {
+    fetch('/api/student_submissions')
+        .then(response => response.json())
+        .then(submissions => {
+            const submissionsList = document.getElementById('studentSubmissions');
+            
+            if (submissions.length > 0) {
+                submissionsList.innerHTML = '';
+                submissions.slice(0, 5).forEach(submission => {
+                    const submissionCard = createStudentSubmissionCard(submission);
+                    submissionsList.appendChild(submissionCard);
+                });
+            } else {
+                submissionsList.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: var(--text-light);">
+                        <i class="icon" style="font-size: 3rem; margin-bottom: 1rem;">📂</i>
+                        <p>No student submissions yet.</p>
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Error loading student submissions:', error);
+            document.getElementById('studentSubmissions').innerHTML = `
+                <div style="text-align: center; padding: 2rem; color: var(--text-light);">
+                    <p>Failed to load submissions.</p>
+                </div>
+            `;
+        });
+}
+
+function createStudentSubmissionCard(submission) {
+    const card = document.createElement('div');
+    card.className = 'file-item';
+    
+    const fileSize = (submission.file_size / 1024 / 1024).toFixed(2);
+    const uploadDate = new Date(submission.upload_date).toLocaleDateString();
+    
+    card.innerHTML = `
+        <div class="file-info">
+            <div class="file-name">📄 ${submission.original_filename}</div>
+            <div class="file-meta">
+                Student: ${submission.uploaded_by_name} ${submission.student_id ? '(' + submission.student_id + ')' : ''} | 
+                Size: ${fileSize} MB | Uploaded: ${uploadDate}
+                ${submission.task_title ? ' | Task: ' + submission.task_title : ''}
+            </div>
+            ${submission.description ? `<p style="margin-top: 0.5rem; color: var(--text-light); font-size: 0.9rem;">${submission.description}</p>` : ''}
+        </div>
+        <div class="file-actions">
+            <a href="/download/${submission.id}" class="btn btn-small btn-primary">
+                ⬇️ Download
+            </a>
+        </div>
+    `;
+    
+    return card;
+}
+
+function updateFileName(input) {
+    const fileUploadText = document.getElementById('fileUploadText');
+    if (input.files && input.files[0]) {
+        const fileName = input.files[0].name;
+        const fileSize = (input.files[0].size / 1024 / 1024).toFixed(2);
+        
+        if (input.files[0].size > 50 * 1024 * 1024) {
+            showNotification('File size must be less than 50MB', 'error');
+            input.value = '';
+            fileUploadText.innerHTML = `
+                Click here or drag and drop your file<br>
+                <small style="opacity: 0.8;">Maximum file size: 50MB</small>
+            `;
+            return;
+        }
+        
+        fileUploadText.innerHTML = `
+            <strong>📄 ${fileName}</strong><br>
+            <small>Size: ${fileSize} MB | Ready to upload</small>
+        `;
+    }
+}
+
+function updateTaskFileName(input) {
+    const fileUploadText = document.getElementById('taskFileUploadText');
+    if (input.files && input.files[0]) {
+        const fileName = input.files[0].name;
+        const fileSize = (input.files[0].size / 1024 / 1024).toFixed(2);
+        
+        if (input.files[0].size > 50 * 1024 * 1024) {
+            showNotification('File size must be less than 50MB', 'error');
+            input.value = '';
+            fileUploadText.innerHTML = `
+                Click here to attach a file to this task<br>
+                <small style="opacity: 0.8;">Optional: PDF, DOC, PPT, etc. (Max: 50MB)</small>
+            `;
+            return;
+        }
+        
+        fileUploadText.innerHTML = `
+            <strong>📄 ${fileName}</strong><br>
+            <small>Size: ${fileSize} MB | Will be attached to task</small>
+        `;
+    }
+}
+
+function setupFileUpload() {
+    const form = document.getElementById('uploadForm');
+    const progressDiv = document.getElementById('uploadProgress');
+    const progressFill = document.getElementById('progressFill');
+    
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const fileInput = document.getElementById('fileInput');
+        const description = document.getElementById('description').value.trim();
+        const uploadedFor = document.getElementById('uploadedFor').value;
+        
+        if (!fileInput.files || !fileInput.files[0]) {
+            showNotification('Please select a file to upload', 'warning');
+            return;
+        }
+        
+        if (!description) {
+            showNotification('Please provide a description for the file', 'warning');
+            return;
+        }
+        
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+        formData.append('description', description);
+        formData.append('uploaded_for', uploadedFor);
+        
+        // Show progress bar
+        progressDiv.style.display = 'block';
+        progressFill.style.width = '0%';
+        progressFill.textContent = '0%';
+        
+        // Disable form
+        const submitButton = form.querySelector('button[type="submit"]');
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<i class="icon">⏳</i> Uploading...';
+        
+        const xhr = new XMLHttpRequest();
+        
+        xhr.upload.addEventListener('progress', (e) => {
+            if (e.lengthComputable) {
+                const percentComplete = (e.loaded / e.total) * 100;
+                progressFill.style.width = percentComplete + '%';
+                progressFill.textContent = Math.round(percentComplete) + '%';
+            }
+        });
+
+        xhr.addEventListener('load', () => {
+            if (xhr.status === 200) {
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    if (response.success) {
+                        showNotification('File uploaded successfully!', 'success');
+                        closeModal('uploadModal');
+                        form.reset();
+                        document.getElementById('fileUploadText').innerHTML = `
+                            Click here or drag and drop your file<br>
+                            <small style="opacity: 0.8;">Maximum file size: 50MB</small>
+                        `;
+                        refreshStats();
+                    } else {
+                        throw new Error(response.error || 'Upload failed');
+                    }
+                } catch (error) {
+                    showNotification(error.message || 'Invalid server response', 'error');
+                }
+            } else {
+                showNotification(`Upload failed with status: ${xhr.status}`, 'error');
+            }
+        });
+
+        xhr.addEventListener('error', () => {
+            showNotification('Network error occurred during upload', 'error');
+        });
+
+        xhr.addEventListener('loadend', () => {
+            progressDiv.style.display = 'none';
+            submitButton.disabled = false;
+            submitButton.innerHTML = '<i class="icon">🚀</i> Upload File';
+        });
+
+        xhr.open('POST', '/upload_file');
+        xhr.send(formData);
+    });
+}
+
+function setupTaskForm() {
+    const taskForm = document.getElementById('taskForm');
+    
+    taskForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData();
+        const title = document.getElementById('taskTitle').value.trim();
+        const description = document.getElementById('taskDescription').value.trim();
+        const assignedTo = document.getElementById('assignedTo').value;
+        const dueDate = document.getElementById('dueDate').value;
+        const priority = document.getElementById('priority').value;
+        const taskFileInput = document.getElementById('taskFileInput');
+        
+        if (!title || !description || !assignedTo || !dueDate) {
+            showNotification('Please fill in all required fields', 'warning');
+            return;
+        }
+        
+        // First upload task file if provided
+        let taskFileId = null;
+        if (taskFileInput.files && taskFileInput.files[0]) {
+            const fileFormData = new FormData();
+            fileFormData.append('file', taskFileInput.files[0]);
+            fileFormData.append('description', `Task file for: ${title}`);
+            
+            try {
+                const fileResponse = await fetch('/upload_task_file', {
+                    method: 'POST',
+                    body: fileFormData
+                });
+                
+                const fileResult = await fileResponse.json();
+                if (fileResult.success) {
+                    taskFileId = fileResult.file_id;
+                } else {
+                    throw new Error(fileResult.error || 'File upload failed');
+                }
+            } catch (error) {
+                showNotification('Failed to upload task file: ' + error.message, 'error');
+                return;
+            }
+        }
+        
+        // Create task
+        formData.append('title', title);
+        formData.append('description', description);
+        formData.append('assigned_to', assignedTo);
+        formData.append('due_date', dueDate);
+        formData.append('priority', priority);
+        if (taskFileId) {
+            formData.append('task_file_id', taskFileId);
+        }
+        
+        try {
+            const response = await fetch('/create_task', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            if (result.success) {
+                showNotification('Task created successfully!', 'success');
+                closeModal('taskModal');
+                taskForm.reset();
+                document.getElementById('taskFileUploadText').innerHTML = `
+                    Click here to attach a file to this task<br>
+                    <small style="opacity: 0.8;">Optional: PDF, DOC, PPT, etc. (Max: 50MB)</small>
+                `;
+                refreshStats();
+            } else {
+                throw new Error(result.error || 'Task creation failed');
+            }
+        } catch (error) {
+            showNotification('Failed to create task: ' + error.message, 'error');
+        }
+    });
+}
+
+function showModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+}
+
+function showNotification(message, type = 'info', duration = 3000) {
+    const existingNotification = document.querySelector('.notification');
+    if (existingNotification) {
+        existingNotification.remove();
+    }
+    
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        color: white;
+        font-weight: 500;
+        z-index: 10000;
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+        max-width: 400px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    `;
+    
+    const colors = {
+        success: '#22c55e',
+        error: '#ef4444',
+        warning: '#f59e0b',
+        info: '#3b82f6'
+    };
+    notification.style.background = colors[type] || colors.info;
+    
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.transform = 'translateX(0)';
+    }, 100);
+    
+    setTimeout(() => {
+        notification.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, 300);
+    }, duration);
+}
+
+// Close modal when clicking outside
+window.addEventListener('click', function(event) {
+    const modals = document.querySelectorAll('.modal');
+    modals.forEach(modal => {
+        if (event.target === modal) {
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+    });
+});
+</script>
+{% endblock %}

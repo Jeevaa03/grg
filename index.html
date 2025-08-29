@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="card" style="text-align: center; margin-top: 2rem;">
+        <h1 style="font-size: 3.5rem; color: #64d1f9ff; margin-bottom: 1rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.1);">
+            🚀 GRG Ignite
+        </h1>
+        <p style="font-size: 1.3rem; color: #111010ff; margin-bottom: 2rem;">
+            Empowering Innovation Through Comprehensive Incubation Management
+        </p>
+        <div style="display: flex; gap: 1rem; justify-content: center; margin-bottom: 3rem;">
+            <a href="{{ url_for('register') }}" class="btn btn-primary">Get Started</a>
+            <a href="{{ url_for('login') }}" class="btn btn-secondary">Login</a>
+        </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-top: 3rem;">
+        <div class="card" style="text-align: center;">
+            <h3 style="color: #69baf4f8; margin-bottom: 1rem;">🎯 Project Management</h3>
+            <p style="font-size: 1.3rem; color: #111010ff; margin-bottom: 2rem;">Streamlined assignment and task management for students and faculty with real-time collaboration.</p>
+        </div>
+        <div class="card" style="text-align: center;">
+            <h3 style="color: #2ea2f5f8; margin-bottom: 1rem;">📊 Progress Tracking</h3>
+            <p style="font-size: 1.3rem; color: #111010ff; margin-bottom: 2rem;">Real-time monitoring of incubation periods from August to December with detailed analytics.</p>
+        </div>
+        <div class="card" style="text-align: center;">
+            <h3 style="color: #1d76b5f8; margin-bottom: 1rem;">👥 Multi-User Platform</h3>
+            <p style="font-size: 1.3rem; color: #111010ff; margin-bottom: 2rem;">Dedicated interfaces for Admins, Students, and Faculty members with role-based access.</p>
+        </div>
+        <div class="card" style="text-align: center;">
+            <h3 style="color: #185179f8; margin-bottom: 1rem;">📁 File Management</h3>
+            <p style="font-size: 1.3rem; color: #111010ff; margin-bottom: 2rem;">Secure file upload, sharing, and download capabilities for all users with cross-platform access.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

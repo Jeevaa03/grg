@@ -1,0 +1,792 @@
+{% extends "base.html" %}
+
+{% block title %}Timeline - GRG Ignite{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="dashboard-header">
+        <h1>📅 Project Timeline</h1>
+        <div style="display: flex; gap: 1rem;">
+            <button id="viewToggle" onclick="toggleTimelineView()" class="btn btn-outline">
+                <i class="icon">📊</i> Detailed View
+            </button>
+            <button onclick="refreshTimeline()" class="btn btn-secondary">
+                <i class="icon">🔄</i> Refresh
+            </button>
+        </div>
+    </div>
+
+    <!-- Timeline Container -->
+    <div id="timelineContainer" class="timeline-container">
+        <div class="timeline-line"></div>
+        
+        <!-- September 2025 -->
+        <div class="timeline-event">
+            <div class="timeline-marker milestone upcoming">🎯</div>
+            <div class="timeline-card" onclick="expandTimelineEvent(1, 'Project Initiation & Planning Phase', 'Setup project structure and define objectives', '2025-09-01', 'milestone', 'upcoming', 'Initial project setup, team formation, and objective definition', 'Admin')">
+                <div class="timeline-date">
+                    <span>📅 September 2025</span>
+                    <span class="date-indicator future">UPCOMING</span>
+                </div>
+                <div class="timeline-content">
+                    <h3>Project Initiation & Planning Phase</h3>
+                    <p>Setup project structure and define objectives</p>
+                    <div class="timeline-meta">
+                        <span class="event-type-badge milestone">MILESTONE</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- October 2025 -->
+        <div class="timeline-event">
+            <div class="timeline-marker deadline upcoming">⚠️</div>
+            <div class="timeline-card" onclick="expandTimelineEvent(2, 'Research & Development Phase', 'Conduct market research and develop prototypes', '2025-10-01', 'deadline', 'upcoming', 'Market analysis, competitor research, and prototype development', 'Admin')">
+                <div class="timeline-date">
+                    <span>📅 October 2025</span>
+                    <span class="date-indicator future">UPCOMING</span>
+                </div>
+                <div class="timeline-content">
+                    <h3>Research & Development Phase</h3>
+                    <p>Conduct market research and develop prototypes</p>
+                    <div class="timeline-meta">
+                        <span class="event-type-badge deadline">DEADLINE</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- November 2025 -->
+        <div class="timeline-event">
+            <div class="timeline-marker meeting upcoming">👥</div>
+            <div class="timeline-card" onclick="expandTimelineEvent(3, 'Implementation Phase', 'Build and test the core product features', '2025-11-01', 'meeting', 'upcoming', 'Core product development and feature implementation', 'Admin')">
+                <div class="timeline-date">
+                    <span>📅 November 2025</span>
+                    <span class="date-indicator future">UPCOMING</span>
+                </div>
+                <div class="timeline-content">
+                    <h3>Implementation Phase</h3>
+                    <p>Build and test the core product features</p>
+                    <div class="timeline-meta">
+                        <span class="event-type-badge meeting">MEETING</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- December 2025 -->
+        <div class="timeline-event">
+            <div class="timeline-marker review upcoming">📋</div>
+            <div class="timeline-card" onclick="expandTimelineEvent(4, 'Testing & Refinement', 'User testing and product optimization', '2025-12-01', 'review', 'upcoming', 'Quality assurance, user testing, and product refinement', 'Admin')">
+                <div class="timeline-date">
+                    <span>📅 December 2025</span>
+                    <span class="date-indicator future">UPCOMING</span>
+                </div>
+                <div class="timeline-content">
+                    <h3>Testing & Refinement</h3>
+                    <p>User testing and product optimization</p>
+                    <div class="timeline-meta">
+                        <span class="event-type-badge review">REVIEW</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- January 2026 -->
+        <div class="timeline-event">
+            <div class="timeline-marker presentation upcoming">🎤</div>
+            <div class="timeline-card" onclick="expandTimelineEvent(5, 'Final Presentation & Deployment', 'Present final product and launch', '2026-01-01', 'presentation', 'upcoming', 'Final product presentation and official launch', 'Admin')">
+                <div class="timeline-date">
+                    <span>📅 January 2026</span>
+                    <span class="date-indicator future">UPCOMING</span>
+                </div>
+                <div class="timeline-content">
+                    <h3>Final Presentation & Deployment</h3>
+                    <p>Present final product and launch</p>
+                    <div class="timeline-meta">
+                        <span class="event-type-badge presentation">PRESENTATION</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Table View (hidden by default) -->
+    <div id="timelineTableView" class="timeline-table-view" style="display: none;">
+        <div class="card">
+            <h2 style="color: var(--text-white); margin-bottom: 2rem;">📊 Timeline Details</h2>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Event</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr onclick="expandTimelineEvent(1, 'Project Initiation & Planning Phase', 'Setup project structure and define objectives', '2025-09-01', 'milestone', 'upcoming', 'Initial project setup, team formation, and objective definition', 'Admin')">
+                            <td>Sep 2025</td>
+                            <td>Project Initiation & Planning Phase</td>
+                            <td><span class="event-type-badge milestone">MILESTONE</span></td>
+                            <td><span class="date-indicator future">UPCOMING</span></td>
+                            <td>Setup project structure and define objectives</td>
+                        </tr>
+                        <tr onclick="expandTimelineEvent(2, 'Research & Development Phase', 'Conduct market research and develop prototypes', '2025-10-01', 'deadline', 'upcoming', 'Market analysis, competitor research, and prototype development', 'Admin')">
+                            <td>Oct 2025</td>
+                            <td>Research & Development Phase</td>
+                            <td><span class="event-type-badge deadline">DEADLINE</span></td>
+                            <td><span class="date-indicator future">UPCOMING</span></td>
+                            <td>Conduct market research and develop prototypes</td>
+                        </tr>
+                        <tr onclick="expandTimelineEvent(3, 'Implementation Phase', 'Build and test the core product features', '2025-11-01', 'meeting', 'upcoming', 'Core product development and feature implementation', 'Admin')">
+                            <td>Nov 2025</td>
+                            <td>Implementation Phase</td>
+                            <td><span class="event-type-badge meeting">MEETING</span></td>
+                            <td><span class="date-indicator future">UPCOMING</span></td>
+                            <td>Build and test the core product features</td>
+                        </tr>
+                        <tr onclick="expandTimelineEvent(4, 'Testing & Refinement', 'User testing and product optimization', '2025-12-01', 'review', 'upcoming', 'Quality assurance, user testing, and product refinement', 'Admin')">
+                            <td>Dec 2025</td>
+                            <td>Testing & Refinement</td>
+                            <td><span class="event-type-badge review">REVIEW</span></td>
+                            <td><span class="date-indicator future">UPCOMING</span></td>
+                            <td>User testing and product optimization</td>
+                        </tr>
+                        <tr onclick="expandTimelineEvent(5, 'Final Presentation & Deployment', 'Present final product and launch', '2026-01-01', 'presentation', 'upcoming', 'Final product presentation and official launch', 'Admin')">
+                            <td>Jan 2026</td>
+                            <td>Final Presentation & Deployment</td>
+                            <td><span class="event-type-badge presentation">PRESENTATION</span></td>
+                            <td><span class="date-indicator future">UPCOMING</span></td>
+                            <td>Present final product and launch</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Event Details Modal -->
+<div id="eventDetailsModal" class="modal">
+    <div class="modal-content" style="max-width: 800px;">
+        <span class="close" onclick="closeModal('eventDetailsModal')">&times;</span>
+        <div id="eventDetailsContent">
+            <!-- Event details will be loaded here -->
+        </div>
+    </div>
+</div>
+
+<style>
+/* Timeline Specific Styles */
+.timeline-container {
+    position: relative;
+    padding: 2rem 0;
+}
+
+.timeline-line {
+    position: absolute;
+    left: 30px;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(to bottom, #3b82f6, #8b5cf6);
+    border-radius: 2px;
+    opacity: 0.6;
+}
+
+.timeline-event {
+    position: relative;
+    margin-bottom: 2rem;
+    padding-left: 80px;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: 18px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 4px solid rgba(255, 255, 255, 0.1);
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+}
+
+.timeline-marker.milestone {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+}
+
+.timeline-marker.deadline {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.timeline-marker.meeting {
+    background: linear-gradient(135deg, #06b6d4, #0891b2);
+}
+
+.timeline-marker.review {
+    background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.timeline-marker.presentation {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+}
+
+.timeline-marker.completed {
+    border-color: #48bb78;
+    box-shadow: 0 0 0 4px rgba(72, 187, 120, 0.2);
+}
+
+.timeline-marker.upcoming {
+    border-color: #4299e1;
+    box-shadow: 0 0 0 4px rgba(66, 153, 225, 0.2);
+}
+
+.timeline-card {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.timeline-card:hover {
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.timeline-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, 
+        transparent 0%, 
+        rgba(255, 255, 255, 0.1) 50%, 
+        transparent 100%);
+    transition: left 0.6s ease;
+}
+
+.timeline-card:hover::before {
+    left: 100%;
+}
+
+.timeline-date {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.date-indicator {
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-weight: 700;
+}
+
+.date-indicator.past {
+    background: rgba(107, 114, 128, 0.2);
+    color: #9ca3af;
+}
+
+.date-indicator.today {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.date-indicator.future {
+    background: linear-gradient(135deg, #06b6d4, #0891b2);
+    color: white;
+}
+
+.timeline-content h3 {
+    color: white;
+    margin-bottom: 0.5rem;
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+
+.timeline-content p {
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 1rem;
+    line-height: 1.5;
+}
+
+.timeline-meta {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.event-type-badge {
+    font-size: 0.75rem;
+    padding: 4px 12px;
+    border-radius: 50px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.event-type-badge.milestone {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: white;
+}
+
+.event-type-badge.deadline {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+}
+
+.event-type-badge.meeting {
+    background: linear-gradient(135deg, #06b6d4, #0891b2);
+    color: white;
+}
+
+.event-type-badge.review {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+}
+
+.event-type-badge.presentation {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    color: white;
+}
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.8);
+}
+
+.modal-content {
+    background: rgba(30, 30, 30, 0.95);
+    backdrop-filter: blur(20px);
+    margin: 5% auto;
+    padding: 2rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    width: 90%;
+    max-width: 600px;
+    position: relative;
+}
+
+.close {
+    color: rgba(255, 255, 255, 0.7);
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    position: absolute;
+    right: 1rem;
+    top: 1rem;
+    cursor: pointer;
+}
+
+.close:hover {
+    color: white;
+}
+
+.status-badge {
+    font-size: 0.75rem;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+/* Button Styles */
+.btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-outline {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+.btn-outline:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, #6b7280, #4b5563);
+    color: white;
+}
+
+.btn-secondary:hover {
+    transform: translateY(-2px);
+}
+
+/* Container Styles */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.dashboard-header h1 {
+    color: white;
+    font-size: 2rem;
+    margin: 0;
+}
+
+/* Table Styles */
+.card {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 2rem;
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+
+.data-table th,
+.data-table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.data-table th {
+    background: rgba(255, 255, 255, 0.05);
+    font-weight: 600;
+}
+
+.data-table tbody tr {
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.data-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* Animation */
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+.timeline-fade-in {
+    animation: fadeInUp 0.6s ease-out both;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .timeline-event {
+        padding-left: 60px;
+    }
+    
+    .timeline-line {
+        left: 20px;
+    }
+    
+    .timeline-marker {
+        left: 8px;
+        width: 24px;
+        height: 24px;
+    }
+    
+    .timeline-card {
+        padding: 1rem;
+    }
+    
+    .dashboard-header {
+        text-align: center;
+    }
+    
+    .dashboard-header h1 {
+        font-size: 1.5rem;
+    }
+}
+</style>
+
+<script>
+let isDetailedView = false;
+
+function toggleTimelineView() {
+    const timelineContainer = document.getElementById('timelineContainer');
+    const timelineTableView = document.getElementById('timelineTableView');
+    const viewToggle = document.getElementById('viewToggle');
+    
+    isDetailedView = !isDetailedView;
+    
+    if (isDetailedView) {
+        timelineContainer.style.display = 'none';
+        timelineTableView.style.display = 'block';
+        viewToggle.innerHTML = '<i class="icon">📅</i> Timeline View';
+    } else {
+        timelineContainer.style.display = 'block';
+        timelineTableView.style.display = 'none';
+        viewToggle.innerHTML = '<i class="icon">📊</i> Detailed View';
+    }
+    
+    showNotification(`Switched to ${isDetailedView ? 'detailed' : 'timeline'} view`, 'info', 2000);
+}
+
+function expandTimelineEvent(eventId, title, description, eventDate, eventType, status, details, createdBy) {
+    const modal = document.getElementById('eventDetailsModal');
+    const content = document.getElementById('eventDetailsContent');
+    
+    const eventTypeIcons = {
+        'milestone': '🎯',
+        'deadline': '⚠️',
+        'meeting': '👥',
+        'review': '📋',
+        'presentation': '🎤'
+    };
+    
+    const statusColors = {
+        'completed': 'linear-gradient(135deg, #10b981, #059669)',
+        'upcoming': 'linear-gradient(135deg, #06b6d4, #0891b2)',
+        'in-progress': 'linear-gradient(135deg, #f59e0b, #d97706)',
+        'overdue': 'linear-gradient(135deg, #ef4444, #dc2626)'
+    };
+    
+    const eventTypeColors = {
+        'milestone': 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+        'deadline': 'linear-gradient(135deg, #f59e0b, #d97706)',
+        'meeting': 'linear-gradient(135deg, #06b6d4, #0891b2)',
+        'review': 'linear-gradient(135deg, #10b981, #059669)',
+        'presentation': 'linear-gradient(135deg, #8b5cf6, #7c3aed)'
+    };
+    
+    const formattedDate = new Date(eventDate).toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+    
+    const today = new Date();
+    const eventDateObj = new Date(eventDate);
+    const timeDiff = Math.ceil((eventDateObj - today) / (1000 * 60 * 60 * 24));
+    
+    let timeStatus = '';
+    if (timeDiff < 0) {
+        timeStatus = `<span style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; padding: 4px 12px; border-radius: 12px; font-size: 0.8rem; font-weight: bold;">📅 ${Math.abs(timeDiff)} days ago</span>`;
+    } else if (timeDiff === 0) {
+        timeStatus = `<span style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; padding: 4px 12px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; animation: pulse 2s infinite;">🎯 Today</span>`;
+    } else {
+        timeStatus = `<span style="background: linear-gradient(135deg, #06b6d4, #0891b2); color: white; padding: 4px 12px; border-radius: 12px; font-size: 0.8rem; font-weight: bold;">⏳ ${timeDiff} days to go</span>`;
+    }
+    
+    content.innerHTML = `
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <div style="font-size: 4rem; margin-bottom: 1rem;">${eventTypeIcons[eventType] || '📅'}</div>
+            <h2 style="color: white; margin-bottom: 1rem;">${title}</h2>
+            <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-bottom: 1rem;">
+                <span class="status-badge" style="background: ${statusColors[status]};">
+                    ${status.toUpperCase()}
+                </span>
+                <span class="status-badge" style="background: ${eventTypeColors[eventType]};">
+                    ${eventType.toUpperCase()}
+                </span>
+                ${timeStatus}
+            </div>
+        </div>
+        
+        <div style="margin-bottom: 2rem;">
+            <h3 style="color: white; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                📅 Event Date
+            </h3>
+            <p style="color: rgba(255, 255, 255, 0.7); font-size: 1.1rem; font-weight: 600;">${formattedDate}</p>
+        </div>
+        
+        <div style="margin-bottom: 2rem;">
+            <h3 style="color: white; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                📝 Description
+            </h3>
+            <p style="color: rgba(255, 255, 255, 0.7); line-height: 1.6;">${description}</p>
+        </div>
+        
+        ${details ? `
+        <div style="margin-bottom: 2rem;">
+            <h3 style="color: white; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                📖 Additional Details
+            </h3>
+            <div style="background: rgba(255, 255, 255, 0.05); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.1);">
+                <p style="color: rgba(255, 255, 255, 0.7); line-height: 1.6; white-space: pre-line;">${details}</p>
+            </div>
+        </div>
+        ` : ''}
+        
+        <div style="margin-bottom: 2rem;">
+            <h3 style="color: white; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                👤 Created By
+            </h3>
+            <p style="color: rgba(255, 255, 255, 0.7);">${createdBy}</p>
+        </div>
+        
+        <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+            <button class="btn btn-outline" onclick="closeModal('eventDetailsModal')">
+                ❌ Close
+            </button>
+        </div>
+    `;
+    
+    showModal('eventDetailsModal');
+}
+
+function refreshTimeline() {
+    const timelineContainer = document.getElementById('timelineContainer');
+    if (timelineContainer) {
+        timelineContainer.style.opacity = '0.5';
+    }
+    
+    setTimeout(() => {
+        if (timelineContainer) {
+            timelineContainer.style.opacity = '1';
+        }
+        showNotification('Timeline refreshed!', 'success', 2000);
+    }, 1000);
+}
+
+function showModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+}
+
+function showNotification(message, type = 'info', duration = 3000) {
+    const existingNotification = document.querySelector('.notification');
+    if (existingNotification) {
+        existingNotification.remove();
+    }
+    
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        color: white;
+        font-weight: 500;
+        z-index: 10000;
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+        max-width: 400px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    `;
+    
+    const colors = {
+        success: '#22c55e',
+        error: '#ef4444',
+        warning: '#f59e0b',
+        info: '#3b82f6'
+    };
+    notification.style.background = colors[type] || colors.info;
+    
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.transform = 'translateX(0)';
+    }, 100);
+    
+    setTimeout(() => {
+        notification.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, 300);
+    }, duration);
+}
+
+// Close modal when clicking outside
+window.addEventListener('click', function(event) {
+    const modals = document.querySelectorAll('.modal');
+    modals.forEach(modal => {
+        if (event.target === modal) {
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+    });
+});
+
+// Initialize timeline animations
+document.addEventListener('DOMContentLoaded', function() {
+    const timelineEvents = document.querySelectorAll('.timeline-event');
+    timelineEvents.forEach((event, index) => {
+        event.style.animationDelay = `${index * 0.1}s`;
+        event.classList.add('timeline-fade-in');
+    });
+});
+</script>
+{% endblock %}

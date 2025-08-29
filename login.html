@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Login - GRG Ignite{% endblock %}
+
+{% block content %}
+<div class="header">
+    <h1>Welcome Back!</h1>
+  
+</div>
+
+<div class="main-content">
+    <div style="max-width: 500px; margin: 0 auto;">
+        <div class="card">
+            <h3 style="text-align: center; margin-bottom: 2rem; color: #1f2937;">🔐 Login</h3>
+            
+      
+                
+                <form method="POST">
+              <div class="form-group">
+                <label for="user_type">👤 User Type:</label>
+                <select id="user_type" name="user_type" required>
+                    <option value="">Select User Type</option>
+                    <option value="admin">Admin</option>
+                    <option value="student">Student</option>
+                    <option value="faculty">Faculty</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="email">📧 Email Address:</label>
+                <input type="email" id="email" name="email" required placeholder="Enter your email">
+            </div>
+            
+            <div class="form-group">
+                <label for="password">🔒 Password:</label>
+                <input type="password" id="password" name="password" required placeholder="Enter your password">
+            </div>
+            
+          
+            
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-bottom: 1rem;">
+                🚀 Login
+            </button>
+        </form>
+
+        <div style="text-align: center; padding-top: 1rem; border-top: 2px solid #030303ff;">
+            <p style="color: #74b9ff;">Don't have an account? 
+                <a href="{{ url_for('register') }}" style="color: #b8dbf2ff; text-decoration: none; font-weight: 600;">Register here</a>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

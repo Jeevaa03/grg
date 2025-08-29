@@ -1,0 +1,375 @@
+{% extends "base.html" %}
+
+{% block title %}Student Submissions - GRG Ignite{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="dashboard-header">
+        <h1>📋 Student Submissions</h1>
+        <div style="display: flex; gap: 1rem;">
+            <button onclick="refreshSubmissions()" class="btn btn-glass">
+                <i class="icon">🔄</i> Refresh
+            </button>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-outline">
+                <i class="icon">🏠</i> Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Submission Statistics -->
+    <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+        <div class="stat-card">
+            <h3>{{ submissions|length }}</h3>
+            <p>Total Submissions</p>
+        </div>
+        <div class="stat-card">
+            <h3>
+                {% set task_submissions = submissions|selectattr('task_id', 'defined')|list %}
+                {{ task_submissions|length }}
+            </h3>
+            <p>Task Submissions</p>
+        </div>
+        <div class="stat-card">
+            <h3>
+                {% set general_submissions = submissions|rejectattr('task_id', 'defined')|list %}
+                {{ general_submissions|length }}
+            </h3>
+            <p>General Uploads</p>
+        </div>
+        <div class="stat-card">
+            <h3>
+                {% set total_size = submissions|sum(attribute='file_size') %}
+                {{ "%.2f"|format(total_size / 1024 / 1024) }} MB
+            </h3>
+            <p>Total Size</p>
+        </div>
+    </div>
+
+    <!-- Submission Filters -->
+    <div class="card">
+        <h2 style="color: var(--text-white); margin-bottom: 1rem;">🔍 Filter Submissions</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+            <input type="text" id="searchSubmissions" placeholder="🔍 Search by student name or file..." style="padding: 0.75rem; border-radius: 12px; border: 2px solid var(--border-light); background: var(--glass-bg); color: var(--text-white);">
+            
+            <select id="filterSubmissionType" style="padding: 0.75rem; border-radius: 12px; border: 2px solid var(--border-light); background: var(--glass-bg); color: var(--text-white);">
+                <option value="all">All Submissions</option>
+                <option value="task">Task Submissions</option>
+                <option value="general">General Uploads</option>
+            </select>
+            
+            <select id="filterDepartment" style="padding: 0.75rem; border-radius: 12px; border: 2px solid var(--border-light); background: var(--glass-bg); color: var(--text-white);">
+                <option value="all">All Departments</option>
+                {% for submission in submissions %}
+                    {% if submission.department and submission.department not in (submissions|map(attribute='department')|list)[:loop.index-1] %}
+                        <option value="{{ submission.department }}">{{ submission.department }}</option>
+                    {% endif %}
+                {% endfor %}
+            </select>
+            
+            <button onclick="clearSubmissionFilters()" class="btn btn-outline">
+                <i class="icon">🗑️</i> Clear Filters
+            </button>
+        </div>
+    </div>
+
+    <!-- Submissions List -->
+    <div class="card">
+        <h2 style="color: var(--text-white); margin-bottom: 2rem;">
+            📄 Student Submissions 
+            <span id="submissionCount" style="font-size: 1rem; opacity: 0.8;">({{ submissions|length }} submissions)</span>
+        </h2>
+        
+        {% if submissions %}
+        <div id="submissionsList" class="file-list">
+            {% for submission in submissions %}
+            <div class="submission-item file-item" 
+                 data-student="{{ submission.uploaded_by_name|lower }}" 
+                 data-filename="{{ submission.original_filename|lower }}" 
+                 data-department="{{ submission.department|lower if submission.department else '' }}"
+                 data-type="{{ 'task' if submission.task_id else 'general' }}">
+                <div class="file-info">
+                    <div class="file-name">
+                        {% if submission.file_type and 'pdf' in submission.file_type %}📄
+                        {% elif submission.file_type and ('doc' in submission.file_type or 'word' in submission.file_type) %}📝
+                        {% elif submission.file_type and ('image' in submission.file_type or 'jpeg' in submission.file_type or 'png' in submission.file_type) %}🖼️
+                        {% elif submission.file_type and ('zip' in submission.file_type or 'archive' in submission.file_type) %}📦
+                        {% else %}📎
+                        {% endif %}
+                        {{ submission.original_filename }}
+                        {% if submission.task_id %}
+                        <span class="status-badge" style="background: var(--success-gradient); padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; margin-left: 0.5rem;">
+                            TASK SUBMISSION
+                        </span>
+                        {% endif %}
+                    </div>
+                    <div class="file-meta">
+                        <strong>Student:</strong> {{ submission.uploaded_by_name }} 
+                        {% if submission.student_id %}({{ submission.student_id }}){% endif %}
+                        {% if submission.department %} - {{ submission.department }}{% endif %} |
+                        <strong>Size:</strong> {{ "%.2f"|format(submission.file_size / 1024 / 1024) }} MB |
+                        <strong>Uploaded:</strong> {{ submission.upload_date.split('T')[0] if submission.upload_date else 'Unknown' }}
+                        {% if submission.task_title %}
+                        <br><strong>Task:</strong> {{ submission.task_title }}
+                        {% endif %}
+                    </div>
+                    {% if submission.description %}
+                    <div style="margin-top: 0.5rem; color: var(--text-light); font-size: 0.9rem;">
+                        <strong>Notes:</strong> {{ submission.description }}
+                    </div>
+                    {% endif %}
+                    {% if submission.submission_text %}
+                    <div style="margin-top: 0.5rem; color: var(--text-light); font-size: 0.9rem;">
+                        <strong>Submission Notes:</strong> {{ submission.submission_text }}
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="file-actions">
+                    <a href="{{ url_for('download_file', file_id=submission.id) }}" class="btn btn-small btn-primary">
+                        <i class="icon">⬇️</i> Download
+                    </a>
+                    <button onclick="showSubmissionDetails({{ submission.id }}, '{{ submission.original_filename }}', '{{ submission.uploaded_by_name }}', '{{ submission.student_id or '' }}', '{{ submission.department or '' }}', '{{ submission.task_title or '' }}', '{{ submission.description or '' }}', '{{ submission.submission_text or '' }}')" class="btn btn-small btn-glass">
+                        <i class="icon">👁️</i> Details
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div style="text-align: center; padding: 3rem; color: var(--text-light);">
+            <i class="icon" style="font-size: 4rem; margin-bottom: 1rem;">📁</i>
+            <h3 style="color: var(--text-white); margin-bottom: 1rem;">No Submissions Yet</h3>
+            <p>No student submissions have been received yet.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Submission Details Modal -->
+<div id="submissionDetailsModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal('submissionDetailsModal')">&times;</span>
+        <div id="submissionDetailsContent">
+            <!-- Submission details will be loaded here -->
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    setupSubmissionFilters();
+});
+
+function setupSubmissionFilters() {
+    const searchInput = document.getElementById('searchSubmissions');
+    const typeFilter = document.getElementById('filterSubmissionType');
+    const departmentFilter = document.getElementById('filterDepartment');
+    
+    function filterSubmissions() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const typeValue = typeFilter.value;
+        const departmentValue = departmentFilter.value;
+        const submissionItems = document.querySelectorAll('.submission-item');
+        
+        let visibleCount = 0;
+        
+        submissionItems.forEach(item => {
+            const studentName = item.dataset.student;
+            const filename = item.dataset.filename;
+            const department = item.dataset.department;
+            const type = item.dataset.type;
+            
+            let showItem = true;
+            
+            // Search filter
+            if (searchTerm && !studentName.includes(searchTerm) && !filename.includes(searchTerm)) {
+                showItem = false;
+            }
+            
+            // Type filter
+            if (typeValue !== 'all' && type !== typeValue) {
+                showItem = false;
+            }
+            
+            // Department filter
+            if (departmentValue !== 'all' && department !== departmentValue.toLowerCase()) {
+                showItem = false;
+            }
+            
+            if (showItem) {
+                item.style.display = 'flex';
+                visibleCount++;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+        
+        document.getElementById('submissionCount').textContent = `(${visibleCount} submissions shown)`;
+    }
+    
+    searchInput.addEventListener('input', debounce(filterSubmissions, 300));
+    typeFilter.addEventListener('change', filterSubmissions);
+    departmentFilter.addEventListener('change', filterSubmissions);
+}
+
+function clearSubmissionFilters() {
+    document.getElementById('searchSubmissions').value = '';
+    document.getElementById('filterSubmissionType').value = 'all';
+    document.getElementById('filterDepartment').value = 'all';
+    
+    const submissionItems = document.querySelectorAll('.submission-item');
+    submissionItems.forEach(item => {
+        item.style.display = 'flex';
+    });
+    
+    document.getElementById('submissionCount').textContent = `({{ submissions|length }} submissions)`;
+    showNotification('Filters cleared', 'info', 2000);
+}
+
+function refreshSubmissions() {
+    showNotification('Refreshing submissions...', 'info', 1000);
+    setTimeout(() => {
+        window.location.reload();
+    }, 1000);
+}
+
+function showSubmissionDetails(fileId, filename, studentName, studentId, department, taskTitle, description, submissionText) {
+    const modal = document.getElementById('submissionDetailsModal');
+    const content = document.getElementById('submissionDetailsContent');
+    
+    content.innerHTML = `
+        <h2 style="color: var(--text-white); margin-bottom: 1rem;">📄 ${filename}</h2>
+        <div style="display: grid; gap: 1rem; margin-bottom: 2rem;">
+            <div>
+                <strong style="color: var(--text-white);">👤 Student:</strong>
+                <p style="color: var(--text-light); margin-top: 0.5rem;">
+                    ${studentName} ${studentId ? '(' + studentId + ')' : ''}
+                    ${department ? ' - ' + department : ''}
+                </p>
+            </div>
+            ${taskTitle ? `
+                <div>
+                    <strong style="color: var(--text-white);">📋 Task:</strong>
+                    <p style="color: var(--text-light); margin-top: 0.5rem;">${taskTitle}</p>
+                </div>
+            ` : ''}
+            ${description ? `
+                <div>
+                    <strong style="color: var(--text-white);">📝 File Description:</strong>
+                    <p style="color: var(--text-light); margin-top: 0.5rem;">${description}</p>
+                </div>
+            ` : ''}
+            ${submissionText ? `
+                <div>
+                    <strong style="color: var(--text-white);">💬 Submission Notes:</strong>
+                    <p style="color: var(--text-light); margin-top: 0.5rem;">${submissionText}</p>
+                </div>
+            ` : ''}
+        </div>
+        <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+            <a href="/download/${fileId}" class="btn btn-primary">
+                <i class="icon">⬇️</i> Download File
+            </a>
+            <button class="btn btn-success" onclick="provideFeedback(${fileId}, '${studentName}', '${filename}')">
+                <i class="icon">💬</i> Provide Feedback
+            </button>
+            <button class="btn btn-outline" onclick="closeModal('submissionDetailsModal')">
+                <i class="icon">❌</i> Close
+            </button>
+        </div>
+    `;
+    
+    showModal('submissionDetailsModal');
+}
+
+function provideFeedback(fileId, studentName, filename) {
+    // This would open a feedback modal - implement as needed
+    showNotification(`Feedback feature for ${studentName}'s submission will be implemented`, 'info');
+}
+
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+function showModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+}
+
+function showNotification(message, type = 'info', duration = 3000) {
+    const existingNotification = document.querySelector('.notification');
+    if (existingNotification) {
+        existingNotification.remove();
+    }
+    
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        color: white;
+        font-weight: 500;
+        z-index: 10000;
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+        max-width: 400px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    `;
+    
+    const colors = {
+        success: '#22c55e',
+        error: '#ef4444',
+        warning: '#f59e0b',
+        info: '#3b82f6'
+    };
+    notification.style.background = colors[type] || colors.info;
+    
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.transform = 'translateX(0)';
+    }, 100);
+    
+    setTimeout(() => {
+        notification.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, 300);
+    }, duration);
+}
+</script>
+
+<style>
+.submission-item {
+    border-left: 4px solid var(--primary-color);
+}
+
+.submission-item:hover {
+    border-left-color: var(--success-color);
+}
+</style>
+{% endblock %}

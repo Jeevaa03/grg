@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Register - GRG Ignite{% endblock %}
+
+{% block content %}
+<div class="header">
+    <h1>Join the GRG Ignite Platform!</h1>
+
+</div>
+
+<div class="main-content">
+    <div style="max-width: 500px; margin: 0 auto;">
+        <div class="card">
+            <h3 style="text-align: center; margin-bottom: 2rem; color: #1f2937;">📝 Register as Student</h3>
+          
+        <form method="POST">
+            <div class="form-group">
+                <div class="form-group">
+                <label for="user_type">👥 User Type:</label>
+                <select id="user_type" name="user_type" required onchange="toggleStudentFields()">
+                    <option value="">Select User Type</option>
+                    <option value="student">Student</option>
+                    <option value="faculty">Faculty</option>
+                </select>
+            </div>
+                <label for="name">👤 Full Name:</label>
+                <input type="text" id="name" name="name" required placeholder="Enter your full name">
+            </div>
+            
+            <div class="form-group">
+                <label for="email">📧 Email Address:</label>
+                <input type="email" id="email" name="email" required placeholder="Enter your email">
+            </div>
+            
+            <div class="form-group">
+                <label for="password">🔒 Password:</label>
+                <input type="password" id="password" name="password" required placeholder="Create a password">
+            </div>
+            
+            
+            
+            <div id="studentFields" style="display: none;">
+                <div class="form-group">
+                    <label for="student_id">🆔 Student ID:</label>
+                    <input type="text" id="student_id" name="student_id" placeholder="Enter your student ID">
+                </div>
+                
+                <div class="form-group">
+                    <label for="department">🏢 Department:</label>
+                    <input type="text" id="department" name="department" placeholder="Enter your department">
+                </div>
+            </div>
+            
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-bottom: 1rem;">
+                🚀 Register
+            </button>
+        </form>
+
+        <div style="text-align: center; padding-top: 1rem; border-top: 2px solid #e8f4fd;">
+            <p style="color: #f588c6ff;">Already have an account? 
+                <a href="{{ url_for('login') }}" style="color: #76d3efb3; text-decoration: none; font-weight: 600;">Login here</a>
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleStudentFields() {
+    const userType = document.getElementById('user_type').value;
+    const studentFields = document.getElementById('studentFields');
+    
+    if (userType === 'student') {
+        studentFields.style.display = 'block';
+        document.getElementById('student_id').required = true;
+        document.getElementById('department').required = true;
+    } else {
+        studentFields.style.display = 'none';
+        document.getElementById('student_id').required = false;
+        document.getElementById('department').required = false;
+    }
+}
+</script>
+{% endblock %}
